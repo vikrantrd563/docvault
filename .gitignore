@@ -1,0 +1,29 @@
+
+# .NET
+*.user
+*.suo
+.vs/
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+appsettings.Development.json
+local.settings.json
+*.pfx
+ 
+# SECRETS - NEVER commit these
+.env
+*.env
+secrets.json
+ 
+# Node / Angular
+node_modules/
+dist/
+.angular/
+npm-debug.log
+ 
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
