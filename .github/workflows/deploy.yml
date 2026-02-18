@@ -26,5 +26,5 @@ jobs:
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
-          app-name: "docvault-api"
+          app-name: "docvault-api1234"
           package: "./publish"
