@@ -26,24 +26,30 @@ namespace DocVault.Api.Controllers
             _logger = logger;
         }
 
-        // 📤 Upload
+        private string? GetUserId()
+        {
+            return User.FindFirst("oid")?.Value
+                ?? User.FindFirst("sub")?.Value
+                ?? User.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier")?.Value;
+        }
+
+        // POST /api/documents
         [HttpPost]
         public async Task<IActionResult> Upload(IFormFile file)
         {
             if (file == null || file.Length == 0)
                 return BadRequest("No file provided.");
 
-            var userId = User.FindFirst("oid")?.Value
-                ?? throw new Exception("User ID not found in token");
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized("User ID not found in token.");
 
             var blobName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
 
             var container = _blobClient.GetBlobContainerClient("uploads");
             await container.UploadBlobAsync(blobName, file.OpenReadStream());
 
-            var ctr = _cosmosClient
-                .GetDatabase("docvault")
-                .GetContainer("documents");
+            var ctr = _cosmosClient.GetDatabase("docvault").GetContainer("documents");
 
             var doc = new DocumentMetadata
             {
@@ -57,20 +63,18 @@ namespace DocVault.Api.Controllers
             };
 
             await ctr.CreateItemAsync(doc, new PartitionKey(userId));
-
             return Ok(doc);
         }
 
-        // 📄 List All Documents
+        // GET /api/documents
         [HttpGet]
         public async Task<IActionResult> List()
         {
-            var userId = User.FindFirst("oid")?.Value
-                ?? throw new Exception("User ID not found in token");
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized("User ID not found in token.");
 
-            var ctr = _cosmosClient
-                .GetDatabase("docvault")
-                .GetContainer("documents");
+            var ctr = _cosmosClient.GetDatabase("docvault").GetContainer("documents");
 
             var query = new QueryDefinition(
                 "SELECT * FROM c WHERE c.userId = @uid")
@@ -97,24 +101,25 @@ namespace DocVault.Api.Controllers
             return Ok(docs);
         }
 
-        // 🔍 Search Documents by File Name
+        // GET /api/documents/search?q=term
         [HttpGet("search")]
-        public async Task<IActionResult> Search(string query)
+        public async Task<IActionResult> Search([FromQuery(Name = "q")] string q)
         {
-            var userId = User.FindFirst("oid")?.Value
-                ?? throw new Exception("User ID not found in token");
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized("User ID not found in token.");
 
-            var container = _cosmosClient
-                .GetDatabase("docvault")
-                .GetContainer("documents");
+            if (string.IsNullOrWhiteSpace(q))
+                return Ok(new List<DocumentMetadata>());
+
+            var container = _cosmosClient.GetDatabase("docvault").GetContainer("documents");
 
             var sqlQuery = new QueryDefinition(
-                "SELECT * FROM c WHERE c.userId = @userId AND CONTAINS(c.fileName, @query)")
+                "SELECT * FROM c WHERE c.userId = @userId AND CONTAINS(LOWER(c.fileName), LOWER(@q))")
                 .WithParameter("@userId", userId)
-                .WithParameter("@query", query);
+                .WithParameter("@q", q);
 
             var iterator = container.GetItemQueryIterator<DocumentMetadata>(sqlQuery);
-
             var results = new List<DocumentMetadata>();
 
             while (iterator.HasMoreResults)
@@ -123,10 +128,22 @@ namespace DocVault.Api.Controllers
                 results.AddRange(response);
             }
 
+            // Generate SAS URLs for results
+            var blobCtr = _blobClient.GetBlobContainerClient("uploads");
+            foreach (var doc in results)
+            {
+                doc.DownloadUrl = blobCtr
+                    .GetBlobClient(doc.BlobName)
+                    .GenerateSasUri(
+                        BlobSasPermissions.Read,
+                        DateTimeOffset.UtcNow.AddHours(1))
+                    .ToString();
+            }
+
             return Ok(results);
         }
 
-        // ❤️ Health
+        // GET /api/health
         [AllowAnonymous]
         [HttpGet("/api/health")]
         public IActionResult Health()
