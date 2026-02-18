@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component ,ChangeDetectionStrategy ,ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -9,6 +9,7 @@ import { DocumentService } from '../services/document.service';
 @Component({
   selector: 'app-upload',
   standalone: true,
+  changeDetection : ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, MatButtonModule, MatProgressBarModule,
             MatIconModule, MatSnackBarModule],
   template: `
@@ -56,7 +57,8 @@ export class UploadComponent {
  
   constructor(
     private docService: DocumentService,
-    private snackBar: MatSnackBar) {}
+    private snackBar: MatSnackBar,
+    private cdr : ChangeDetectorRef) {}
  
   onDragOver(event: DragEvent) {
     event.preventDefault();
@@ -77,16 +79,19 @@ export class UploadComponent {
  
   uploadFile(file: File) {
     this.uploading = true;
+    this.cdr.markForCheck();
     const formData = new FormData();
     formData.append('file', file);
     this.docService.upload(formData).subscribe({
       next: () => {
         this.uploading = false;
+        this.cdr.markForCheck();
         this.snackBar.open('Uploaded successfully!', 'Close',
           { duration: 3000 });
       },
       error: (err) => {
         this.uploading = false;
+        this.cdr.markForCheck();
         this.snackBar.open('Upload failed. Is the API running?',
           'Close', { duration: 4000 });
         console.error(err);

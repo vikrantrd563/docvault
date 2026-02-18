@@ -6,13 +6,19 @@ import { DocumentListComponent } from './document-list/document-list.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
-  { path: '', redirectTo: '/documents', pathMatch: 'full' },
+
   {
     path: 'documents',
     canActivate: [MsalGuard],
-    children: [
-      { path: '', component: UploadComponent },
-      { path: 'list', component: DocumentListComponent }
-    ]
-  }
+    component: UploadComponent   // 👈 no children
+  },
+
+  {
+    path: 'documents/list',
+    canActivate: [MsalGuard],
+    component: DocumentListComponent
+  },
+
+  { path: '', redirectTo: '/documents', pathMatch: 'full' },
+  { path: '**', redirectTo: '/documents' }
 ];

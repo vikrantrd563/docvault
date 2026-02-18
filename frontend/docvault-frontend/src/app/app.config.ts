@@ -3,7 +3,7 @@ import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptorsFromDi, HTTP_INTERCEPTORS }
  from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
-import { MSAL_INSTANCE, MSAL_GUARD_CONFIG, MSAL_INTERCEPTOR_CONFIG,
+import { MsalRedirectComponent,MSAL_INSTANCE, MSAL_GUARD_CONFIG, MSAL_INTERCEPTOR_CONFIG,
  MsalService, MsalGuard, MsalBroadcastService, MsalInterceptor,
  MsalModule } from '@azure/msal-angular';
 import { routes } from './app.routes';
