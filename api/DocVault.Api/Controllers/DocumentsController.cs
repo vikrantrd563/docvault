@@ -3,9 +3,11 @@ using Azure.Storage.Sas;
 using DocVault.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Cosmos;
+using Microsoft.AspNetCore.Authorization;
 
 namespace DocVault.Api.Controllers
 {
+    [Authorize]  
     [ApiController]
     [Route("api/[controller]")]
     public class DocumentsController : ControllerBase
@@ -23,22 +25,21 @@ namespace DocVault.Api.Controllers
             _cosmosClient = cosmos;
             _logger = logger;
         }
-
-        // POST /api/documents — Upload file
         [HttpPost]
         public async Task<IActionResult> Upload(IFormFile file)
         {
             if (file == null || file.Length == 0)
                 return BadRequest("No file provided.");
 
-            var userId = "test-user-001";
+            // 🔐 Extract user ID from JWT token
+            var userId = User.FindFirst("oid")?.Value
+                ?? throw new Exception("User ID not found in token");
+
             var blobName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
 
-            // Upload to Blob Storage
             var container = _blobClient.GetBlobContainerClient("uploads");
             await container.UploadBlobAsync(blobName, file.OpenReadStream());
 
-            // Save metadata to Cosmos DB
             var ctr = _cosmosClient
                 .GetDatabase("docvault")
                 .GetContainer("documents");
@@ -58,12 +59,11 @@ namespace DocVault.Api.Controllers
 
             return Ok(doc);
         }
-
-        // GET /api/documents — List documents
         [HttpGet]
         public async Task<IActionResult> List()
         {
-            var userId = "test-user-001";
+            var userId = User.FindFirst("oid")?.Value
+                ?? throw new Exception("User ID not found in token");
 
             var ctr = _cosmosClient
                 .GetDatabase("docvault")
@@ -79,7 +79,6 @@ namespace DocVault.Api.Controllers
             while (feed.HasMoreResults)
                 docs.AddRange(await feed.ReadNextAsync());
 
-            // Generate SAS download URL
             var blobCtr = _blobClient.GetBlobContainerClient("uploads");
 
             foreach (var doc in docs)
@@ -95,7 +94,7 @@ namespace DocVault.Api.Controllers
             return Ok(docs);
         }
 
-        // Health check
+        [AllowAnonymous]
         [HttpGet("/api/health")]
         public IActionResult Health()
         {
