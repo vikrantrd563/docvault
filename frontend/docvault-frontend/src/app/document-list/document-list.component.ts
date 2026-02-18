@@ -70,10 +70,24 @@ export class DocumentListComponent implements OnInit {
   documents: DocumentMetadata[] = [];
   cols = ['fileName', 'size', 'uploadedAt', 'download'];
   searchQuery = '';
+  private refreshInterval:any;
 
   constructor(private svc: DocumentService) {}
 
-  ngOnInit() { this.load(); }
+  ngOnInit() { this.load(); 
+    this.refreshInterval =setInterval(()=>{
+      if(!this.searchQuery|| !this.searchQuery.trim())
+      this.load();
+
+    },5000);
+  }
+
+  ngOnDestroy()
+  {
+    if(this.refreshInterval){
+      clearInterval(this.refreshInterval);
+    }
+  }
 
   load() {
     this.svc.list().subscribe({
