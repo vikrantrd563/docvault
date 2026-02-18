@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace DocVault.Api.Controllers
 {
-    [Authorize]  
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class DocumentsController : ControllerBase
@@ -25,13 +25,14 @@ namespace DocVault.Api.Controllers
             _cosmosClient = cosmos;
             _logger = logger;
         }
+
+        // 📤 Upload
         [HttpPost]
         public async Task<IActionResult> Upload(IFormFile file)
         {
             if (file == null || file.Length == 0)
                 return BadRequest("No file provided.");
 
-            // 🔐 Extract user ID from JWT token
             var userId = User.FindFirst("oid")?.Value
                 ?? throw new Exception("User ID not found in token");
 
@@ -59,6 +60,8 @@ namespace DocVault.Api.Controllers
 
             return Ok(doc);
         }
+
+        // 📄 List All Documents
         [HttpGet]
         public async Task<IActionResult> List()
         {
@@ -94,6 +97,36 @@ namespace DocVault.Api.Controllers
             return Ok(docs);
         }
 
+        // 🔍 Search Documents by File Name
+        [HttpGet("search")]
+        public async Task<IActionResult> Search(string query)
+        {
+            var userId = User.FindFirst("oid")?.Value
+                ?? throw new Exception("User ID not found in token");
+
+            var container = _cosmosClient
+                .GetDatabase("docvault")
+                .GetContainer("documents");
+
+            var sqlQuery = new QueryDefinition(
+                "SELECT * FROM c WHERE c.userId = @userId AND CONTAINS(c.fileName, @query)")
+                .WithParameter("@userId", userId)
+                .WithParameter("@query", query);
+
+            var iterator = container.GetItemQueryIterator<DocumentMetadata>(sqlQuery);
+
+            var results = new List<DocumentMetadata>();
+
+            while (iterator.HasMoreResults)
+            {
+                var response = await iterator.ReadNextAsync();
+                results.AddRange(response);
+            }
+
+            return Ok(results);
+        }
+
+        // ❤️ Health
         [AllowAnonymous]
         [HttpGet("/api/health")]
         public IActionResult Health()
