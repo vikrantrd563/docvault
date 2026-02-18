@@ -28,4 +28,9 @@ export class DocumentService {
   list(): Observable<DocumentMetadata[]> {
     return this.http.get<DocumentMetadata[]>(`${this.apiUrl}/documents`);
   }
+
+  search(query: string): Observable<DocumentMetadata[]> {
+  return this.http.get<DocumentMetadata[]>(
+    `${this.apiUrl}/documents/search?q=${encodeURIComponent(query)}`);
+  }
 }
