@@ -3,6 +3,7 @@ name: Deploy to Azure
 on:
   push:
     branches: [main]
+
 jobs:
   deploy-api:
     name: Deploy .NET API
@@ -14,6 +15,11 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Publish API
         run: dotnet publish ./api/DocVault.Api/DocVault.Api.csproj -c Release -o ./publish
 
@@ -21,5 +27,4 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: "docvault-api"
-          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
           package: "./publish"
