@@ -619,7 +619,7 @@ Allowed:
 Second request within 30 seconds:
 
 - Served from APIM cache  
-- Faster response time  
+- Faster response time . 
 
 ---
 
