@@ -6,6 +6,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Identity.Web;
 using Azure.Identity;
+using Microsoft.ApplicationInsights.Extensibility;   // ✅ NEW
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,9 @@ if (!string.IsNullOrEmpty(keyVaultUrl))
         new Uri(keyVaultUrl),
         new DefaultAzureCredential());
 }
+
+// ✅ ADD APPLICATION INSIGHTS
+builder.Services.AddApplicationInsightsTelemetry();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
