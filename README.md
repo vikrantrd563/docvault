@@ -470,3 +470,256 @@ Day 2 successfully upgraded DocVault from a basic cloud application to a secure,
 
 Security, identity management, and secret protection are now implemented according to AZ-204 certification standards.
 
+#  DocVault – Day 3 (Events, Messaging & Observability)
+
+> AZ-204 Capstone Project – Day 3  
+> Focus: Event-Driven Architecture, Messaging & Monitoring
+
+---
+
+##  Day 3 Objective
+
+Transform DocVault into a production-grade, event-driven cloud system by implementing:
+
+- Azure Event Grid (Event Publishing)
+- Azure Service Bus (Reliable Messaging)
+- Azure Function with EventGrid Trigger
+- Azure API Management (APIM)
+- Rate Limiting & Response Caching
+- Application Insights (Custom Telemetry)
+- Availability Monitoring
+- Angular → APIM Gateway Integration
+
+---
+
+## 👥 Team Contributions – Day 3
+
+###  Akshay – Event Publishing & Observability (Backend)
+
+- Modified Upload API to publish `DocumentUploaded` event
+- Integrated Azure Event Grid SDK
+- Implemented safe event publishing (non-blocking)
+- Added Application Insights custom telemetry
+- Tracked upload duration metric
+- Tracked custom `DocumentUploaded` event
+- Verified Event Grid metrics and Live Metrics stream
+
+---
+
+###  Vaibhav – Azure Messaging & API Management
+
+- Created Azure Event Grid Topic
+- Stored Event Grid endpoint and key in Azure Key Vault
+- Created Azure Service Bus Namespace
+- Created `document-processing` queue with dead-letter support
+- Configured Event Subscription to Azure Function
+- Created Azure API Management (Consumption Tier)
+- Imported OpenAPI specification into APIM
+- Configured APIM policies:
+  - CORS
+  - Rate limiting (10 requests/minute)
+  - Response caching (30 seconds)
+- Connected Application Insights to App Service and Function App
+
+---
+
+###  Vikrant – Frontend & Monitoring
+
+- Updated Angular to use APIM gateway URL
+- Verified rate limiting behavior (429 response)
+- Verified cached responses via APIM
+- Created Availability Test (health check every 5 minutes)
+- Built basic Angular Dashboard (monitoring UI placeholder)
+
+---
+
+#  Architecture (After Day 3)
+
+Angular Frontend  
+⬇  
+Azure API Management  
+⬇  
+.NET 8 Web API (App Service)  
+⬇  
+Publishes Event → Azure Event Grid  
+⬇  
+Azure Function (EventGridTrigger)  
+⬇  
+Blob Processing  
+
+Heavy Processing → Azure Service Bus Queue  
+
+Monitoring → Application Insights  
+Health Monitoring → Availability Test  
+
+---
+
+#  Event-Driven Architecture Implementation
+
+## 1 Azure Event Grid Integration
+
+### Event Type
+
+---
+
+## 2 Azure Function – EventGrid Trigger
+
+- After publishing the `DocVault.DocumentUploaded` event,  
+- the Azure Function is triggered automatically using Event Grid subscription.
+
+### Updated Trigger
+
+### Function Implementation
+
+``csharp
+[Function(nameof(ProcessDocument))]
+public async Task ProcessDocument(
+    [EventGridTrigger] EventGridEvent eventGridEvent)
+{
+    _logger.LogInformation(
+        "Event Grid Triggered: {Subject} | {Type}",
+        eventGridEvent.Subject,
+        eventGridEvent.EventType);
+
+    var data = eventGridEvent.Data
+        .ToObjectFromJson<DocumentUploadedData>();
+
+    var container = _blobClient.GetBlobContainerClient("uploads");
+    var blobClient = container.GetBlobClient(data.BlobName);
+
+    using var stream = new MemoryStream();
+    await blobClient.DownloadToAsync(stream);
+
+    stream.Position = 0;
+
+    // Thumbnail generation or processing logic
+}
+---
+
+## Configured Policies
+
+### 1 CORS Policy
+
+Allowed:
+
+- http://localhost:4200  
+- Production Angular URL  
+
+---
+
+### 2 Rate Limiting
+
+---
+
+### 3 Response Caching
+
+- Applied to `GET /api/documents`
+- Cache duration: 30 seconds  
+
+Second request within 30 seconds:
+
+- Served from APIM cache  
+- Faster response time . 
+
+---
+
+#  Application Insights Integration
+
+### Resource
+
+
+Tracks upload time in milliseconds.
+
+---
+
+
+### Tracked Properties
+
+- fileName  
+- contentType  
+- sizeBytes  
+- userId  
+
+Visible in:
+
+- Live Metrics  
+- Metrics Explorer  
+- Custom Events tab  
+
+---
+
+#  Availability Monitoring
+
+### Standard Test Configuration
+
+- URL: `/api/health`  
+- Frequency: Every 5 minutes  
+- Regions: 3+  
+- Success Criteria: HTTP 200  
+- Alert enabled if 2+ regions fail  
+
+Ensures global availability monitoring.
+
+---
+
+#  Angular Integration with APIM
+
+### Updated Environment Configuration
+
+``ts
+apiBaseUrl: 'https://docvault-apim.azure-api.net/api'
+
+##  New Request Flow
+
+Angular → APIM → API → Event Grid → Function  
+
+### Verified
+
+- Rate limit working  
+- Cache working  
+- API accessible through gateway  
+
+---
+
+#  Testing Flow (Day 3)
+
+1. Upload file  
+2. Check Event Grid metrics → 1 event published  
+3. Check Function logs → triggered successfully  
+4. Check APIM analytics → request visible  
+5. Upload 11 files quickly → 429 error  
+6. Call GET twice within 30 seconds → second call cached  
+7. Check Live Metrics → custom telemetry visible  
+8. Verify Availability test status → Green  
+
+---
+
+#  Day 3 Goals Achieved
+
+- Event-driven architecture implemented  
+- Azure Event Grid integrated  
+- Azure Function subscribed to events  
+- Azure Service Bus configured  
+- API Management deployed and configured  
+- Rate limiting enforced  
+- Response caching enabled  
+- Application Insights monitoring active  
+- Custom telemetry tracking implemented  
+- Availability monitoring configured  
+- Angular integrated with APIM  
+
+---
+
+#  Day 3 Conclusion
+
+Day 3 transformed DocVault into a real-world, enterprise-grade Azure architecture.
+
+The system is now:
+
+- Event-driven  
+- Scalable  
+- Decoupled  
+- Observable  
+- Rate-limited  
+- Cached  
+- Production-ready  

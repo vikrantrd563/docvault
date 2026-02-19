@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
+
  
 export interface DocumentMetadata {
   id: string;
@@ -15,7 +17,7 @@ export interface DocumentMetadata {
 @Injectable({ providedIn: 'root' })
 export class DocumentService {
   
- private readonly apiUrl = 'http://10.10.11.178:5251/api';
+private readonly apiUrl = environment.apiBaseUrl;
 
 
 
