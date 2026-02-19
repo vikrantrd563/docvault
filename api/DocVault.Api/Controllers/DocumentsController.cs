@@ -1,12 +1,15 @@
 using Azure.Storage.Blobs;
 using Azure.Storage.Sas;
-using Azure.Messaging.EventGrid;   // ✅ NEW
-using Azure;                       // ✅ NEW
+using Azure.Messaging.EventGrid;
+using Azure;
 using DocVault.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Cosmos;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Configuration;  // ✅ NEW
+using Microsoft.Extensions.Configuration;
+using Microsoft.ApplicationInsights;                 
+using Microsoft.ApplicationInsights.DataContracts;  
+using System.Diagnostics;                           
 
 namespace DocVault.Api.Controllers
 {
@@ -18,18 +21,21 @@ namespace DocVault.Api.Controllers
         private readonly BlobServiceClient _blobClient;
         private readonly CosmosClient _cosmosClient;
         private readonly ILogger<DocumentsController> _logger;
-        private readonly IConfiguration _config;   // ✅ NEW
+        private readonly IConfiguration _config;
+        private readonly TelemetryClient _telemetry;   
 
         public DocumentsController(
             BlobServiceClient blob,
             CosmosClient cosmos,
-            IConfiguration config,              // ✅ NEW
-            ILogger<DocumentsController> logger)
+            IConfiguration config,
+            ILogger<DocumentsController> logger,
+            TelemetryClient telemetry)                 
         {
             _blobClient = blob;
             _cosmosClient = cosmos;
-            _config = config;                   // ✅ IMPORTANT
+            _config = config;
             _logger = logger;
+            _telemetry = telemetry;                    
         }
 
         private string? GetUserId()
@@ -39,10 +45,11 @@ namespace DocVault.Api.Controllers
                 ?? User.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier")?.Value;
         }
 
-        // POST /api/documents
         [HttpPost]
         public async Task<IActionResult> Upload(IFormFile file)
         {
+            var sw = Stopwatch.StartNew();   
+
             if (file == null || file.Length == 0)
                 return BadRequest("No file provided.");
 
@@ -70,9 +77,6 @@ namespace DocVault.Api.Controllers
 
             await ctr.CreateItemAsync(doc, new PartitionKey(userId));
 
-            // ============================================
-            // ✅ EVENT GRID PUBLISHING (NEW BLOCK)
-            // ============================================
             try
             {
                 var egEndpoint = _config["EventGridEndpoint"];
@@ -112,13 +116,26 @@ namespace DocVault.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to publish event");
-                // DO NOT fail upload if event fails
             }
+
+            
+            sw.Stop();
+            _telemetry.TrackMetric(
+                "DocumentUploadDurationMs",
+                sw.ElapsedMilliseconds);
+            _telemetry.TrackEvent(
+                "DocumentUploaded",
+                new Dictionary<string, string>
+                {
+                    { "fileName", doc.FileName },
+                    { "contentType", doc.ContentType },
+                    { "sizeBytes", doc.SizeBytes.ToString() },
+                    { "userId", doc.UserId }
+                });
 
             return Ok(doc);
         }
 
-        // GET /api/documents
         [HttpGet]
         public async Task<IActionResult> List()
         {
@@ -153,7 +170,6 @@ namespace DocVault.Api.Controllers
             return Ok(docs);
         }
 
-        // GET /api/documents/search?q=term
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery(Name = "q")] string q)
         {
@@ -194,7 +210,6 @@ namespace DocVault.Api.Controllers
             return Ok(results);
         }
 
-        // GET /api/health
         [AllowAnonymous]
         [HttpGet("/api/health")]
         public IActionResult Health()
