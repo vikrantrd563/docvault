@@ -7,9 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Cosmos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
-using Microsoft.ApplicationInsights;                 
-using Microsoft.ApplicationInsights.DataContracts;  
-using System.Diagnostics;                           
+using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.DataContracts;
+using System.Diagnostics;
 
 namespace DocVault.Api.Controllers
 {
@@ -22,20 +22,20 @@ namespace DocVault.Api.Controllers
         private readonly CosmosClient _cosmosClient;
         private readonly ILogger<DocumentsController> _logger;
         private readonly IConfiguration _config;
-        private readonly TelemetryClient _telemetry;   
+        private readonly TelemetryClient _telemetry;
 
         public DocumentsController(
             BlobServiceClient blob,
             CosmosClient cosmos,
             IConfiguration config,
             ILogger<DocumentsController> logger,
-            TelemetryClient telemetry)                 
+            TelemetryClient telemetry)
         {
             _blobClient = blob;
             _cosmosClient = cosmos;
             _config = config;
             _logger = logger;
-            _telemetry = telemetry;                    
+            _telemetry = telemetry;
         }
 
         private string? GetUserId()
@@ -45,10 +45,11 @@ namespace DocVault.Api.Controllers
                 ?? User.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier")?.Value;
         }
 
+        // ── UPLOAD ────────────────────────────────────────────────────────────
         [HttpPost]
         public async Task<IActionResult> Upload(IFormFile file)
         {
-            var sw = Stopwatch.StartNew();   
+            var sw = Stopwatch.StartNew();
 
             if (file == null || file.Length == 0)
                 return BadRequest("No file provided.");
@@ -103,10 +104,7 @@ namespace DocVault.Api.Controllers
                         });
 
                     await client.SendEventAsync(evt);
-
-                    _logger.LogInformation(
-                        "Published DocumentUploaded event for {Id}",
-                        doc.Id);
+                    _logger.LogInformation("Published DocumentUploaded event for {Id}", doc.Id);
                 }
                 else
                 {
@@ -118,24 +116,21 @@ namespace DocVault.Api.Controllers
                 _logger.LogError(ex, "Failed to publish event");
             }
 
-            
             sw.Stop();
-            _telemetry.TrackMetric(
-                "DocumentUploadDurationMs",
-                sw.ElapsedMilliseconds);
-            _telemetry.TrackEvent(
-                "DocumentUploaded",
+            _telemetry.TrackMetric("DocumentUploadDurationMs", sw.ElapsedMilliseconds);
+            _telemetry.TrackEvent("DocumentUploaded",
                 new Dictionary<string, string>
                 {
-                    { "fileName", doc.FileName },
+                    { "fileName",    doc.FileName },
                     { "contentType", doc.ContentType },
-                    { "sizeBytes", doc.SizeBytes.ToString() },
-                    { "userId", doc.UserId }
+                    { "sizeBytes",   doc.SizeBytes.ToString() },
+                    { "userId",      doc.UserId }
                 });
 
             return Ok(doc);
         }
 
+        // ── LIST ──────────────────────────────────────────────────────────────
         [HttpGet]
         public async Task<IActionResult> List()
         {
@@ -170,6 +165,7 @@ namespace DocVault.Api.Controllers
             return Ok(docs);
         }
 
+        // ── SEARCH ────────────────────────────────────────────────────────────
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery(Name = "q")] string q)
         {
@@ -210,6 +206,61 @@ namespace DocVault.Api.Controllers
             return Ok(results);
         }
 
+        // ── DELETE ────────────────────────────────────────────────────────────
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(string id)
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized("User ID not found in token.");
+
+            var ctr = _cosmosClient.GetDatabase("docvault").GetContainer("documents");
+
+            // Fetch the document first to get the blobName and verify ownership
+            DocumentMetadata doc;
+            try
+            {
+                var response = await ctr.ReadItemAsync<DocumentMetadata>(id, new PartitionKey(userId));
+                doc = response.Resource;
+            }
+            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return NotFound($"Document {id} not found.");
+            }
+
+            // Verify this document belongs to the requesting user
+            if (doc.UserId != userId)
+                return Forbid();
+
+            // Delete blob from Azure Storage
+            try
+            {
+                var blobCtr = _blobClient.GetBlobContainerClient("uploads");
+                await blobCtr.GetBlobClient(doc.BlobName).DeleteIfExistsAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to delete blob {BlobName} for document {Id}", doc.BlobName, id);
+                // Still proceed to delete the Cosmos record even if blob delete fails
+            }
+
+            // Delete record from Cosmos DB
+            await ctr.DeleteItemAsync<DocumentMetadata>(id, new PartitionKey(userId));
+
+            _telemetry.TrackEvent("DocumentDeleted",
+                new Dictionary<string, string>
+                {
+                    { "documentId", id },
+                    { "fileName",   doc.FileName },
+                    { "userId",     userId }
+                });
+
+            _logger.LogInformation("Deleted document {Id} ({FileName}) for user {UserId}", id, doc.FileName, userId);
+
+            return NoContent(); // 204
+        }
+
+        // ── HEALTH ────────────────────────────────────────────────────────────
         [AllowAnonymous]
         [HttpGet("/api/health")]
         public IActionResult Health()

@@ -3,7 +3,6 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
- 
 export interface DocumentMetadata {
   id: string;
   fileName: string;
@@ -13,26 +12,28 @@ export interface DocumentMetadata {
   downloadUrl: string;
   excerpt?: string;
 }
- 
+
 @Injectable({ providedIn: 'root' })
 export class DocumentService {
-  
-private readonly apiUrl = environment.apiBaseUrl;
 
-
+  private readonly apiUrl = environment.apiBaseUrl;
 
   constructor(private http: HttpClient) {}
- 
+
   upload(formData: FormData): Observable<DocumentMetadata> {
     return this.http.post<DocumentMetadata>(`${this.apiUrl}/documents`, formData);
   }
- 
+
   list(): Observable<DocumentMetadata[]> {
     return this.http.get<DocumentMetadata[]>(`${this.apiUrl}/documents`);
   }
 
   search(query: string): Observable<DocumentMetadata[]> {
-  return this.http.get<DocumentMetadata[]>(
-    `${this.apiUrl}/documents/search?q=${encodeURIComponent(query)}`);
+    return this.http.get<DocumentMetadata[]>(
+      `${this.apiUrl}/documents/search?q=${encodeURIComponent(query)}`);
+  }
+
+  delete(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/documents/${id}`);
   }
 }

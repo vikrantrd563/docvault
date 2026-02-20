@@ -4,22 +4,18 @@ import { LoginComponent } from './login/login.component';
 import { UploadComponent } from './upload/upload.component';
 import { DocumentListComponent } from './document-list/document-list.component';
 import { DashboardComponent } from './dashboard/dashboard';
+
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
 
-  {
-    path: 'documents',
-    canActivate: [MsalGuard],
-    component: UploadComponent   // no children
-  },
-  { path: 'dashboard', component: DashboardComponent, canActivate: [MsalGuard] },
+  { path: 'documents', component: DocumentListComponent, canActivate: [MsalGuard] },
+  { path: 'starred',   component: DocumentListComponent, canActivate: [MsalGuard] },
+  { path: 'recent',    component: DocumentListComponent, canActivate: [MsalGuard] },
+  { path: 'trash',     component: DocumentListComponent, canActivate: [MsalGuard] },
 
-  {
-    path: 'documents/list',
-    canActivate: [MsalGuard],
-    component: DocumentListComponent
-  },
+  { path: 'upload',    component: UploadComponent,       canActivate: [MsalGuard] },
+  { path: 'dashboard', component: DashboardComponent,    canActivate: [MsalGuard] },
 
-  { path: '', redirectTo: '/documents', pathMatch: 'full' },
-  { path: '**', redirectTo: '/documents' }
+  { path: '',   redirectTo: '/documents', pathMatch: 'full' },
+  { path: '**', redirectTo: '/documents' },
 ];
