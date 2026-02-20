@@ -819,7 +819,7 @@ Deployed container with:
 
 The following diagram represents the complete DocVault system architecture including authentication, API layer, event-driven processing, storage, and monitoring.
 
-![DocVault System Architecture](architecture-diagram.png)
+![architecture diagram](architecture-diagram.jpeg)
 
 The architecture includes:
 
@@ -956,8 +956,8 @@ DocVault is now:
 
 🔗 https://delightful-desert-045289200.2.azurestaticapps.net
 
-# Login Credentials
-emailid :- vaibhavudhane2003@gmail.com
-password :- Vaibhav@2003
+Login Credentials:-
+- emailid :- vaibhavudhane2003@gmail.com
+- password :- Vaibhav@2003
 
 Accessible from all devices and browsers.
