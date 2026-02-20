@@ -723,3 +723,237 @@ The system is now:
 - Rate-limited  
 - Cached  
 - Production-ready  
+
+# DocVault – Day 4
+Containerization, Polish & Demo
+
+> AZ-204 Capstone Project – Final Sprint  
+> Focus: Docker, Azure Container Apps, Architecture & Demo Preparation
+
+---
+
+##  Objective
+
+Complete the sprint by:
+
+- Containerizing the .NET 8 API
+- Deploying to Azure Container Apps (scale-to-zero)
+- Creating architecture diagram
+- Performing end-to-end production smoke test
+- Cleaning up GitHub repository
+- Preparing final 15-minute demo
+
+---
+
+# Containerization
+
+## Dockerfile Implementation
+
+Multi-stage Docker build used for optimized production image.
+
+### Stages:
+1. Build (.NET SDK)
+2. Publish
+3. Runtime (ASP.NET 8)
+
+### Dockerfile Highlights
+
+- .NET 8 SDK base image
+- Release build
+- Exposes port 8080
+- Production environment configuration
+- No development secrets included
+
+---
+
+## Docker Ignore
+
+Excluded:
+
+- bin/
+- obj/
+- .vs/
+- *.user
+- appsettings.Development.json
+
+---
+
+#  Azure Deployment
+
+## Azure Container Registry (ACR)
+
+- Private Docker image repository
+- Image built using `az acr build`
+- No local push required
+
+---
+
+## Azure Container Apps
+
+Deployed container with:
+
+- Ingress: External
+- Target port: 8080
+- Min replicas: 0 (scale-to-zero)
+- Max replicas: 5
+- CPU: 0.5
+- Memory: 1.0Gi
+
+### Managed Identity Enabled
+
+- System-assigned identity
+- Granted Key Vault access
+- Zero credentials stored in container
+
+---
+
+## Production Container URL
+- https://docvault-api-container.salmonplant-8138e262.centralindia.azurecontainerapps.io/api/health
+- Health Check:
+- /api/health
+- 
+---
+
+#  Architecture Diagram
+#  Architecture
+
+The following diagram represents the complete DocVault system architecture including authentication, API layer, event-driven processing, storage, and monitoring.
+
+![DocVault System Architecture](architecture-diagram.png)
+
+The architecture includes:
+
+- Angular SPA with MSAL authenticationgit checkout dev
+
+- Microsoft Entra ID
+- Azure API Management
+- .NET 8 API (Azure Container Apps)
+- Azure Key Vault (Managed Identity)
+- Azure Blob Storage
+- Azure Cosmos DB
+- Azure Event Grid
+- Azure Service Bus
+- Azure Functions
+- Azure Application Insights
+- Azure Container Registry
+- Azure Container Apps
+- Azure Monitor
+---
+
+#  Demo Preparation
+
+## Demo Structure (15 Minutes)
+
+### Part 1 – Backend & Data Flow (Akshay)
+
+- Show Swagger endpoint
+- Upload file
+- Verify Blob Storage
+- Verify Cosmos DB metadata
+- Explain Managed Identity
+- Explain Key Vault integration
+
+---
+
+### Part 2 – Event-Driven Architecture (Vaibhav)
+
+- Show Event Grid metrics
+- Show Function triggered
+- Show thumbnail generation
+- Show APIM rate limit
+- Explain caching policy
+
+---
+
+### Part 3 – Frontend & Observability (Vikrant)
+
+- Login using Microsoft account
+- Upload & download file
+- Search functionality
+- Show Live Metrics in App Insights
+- Show Availability monitoring
+- Explain architecture diagram
+
+---
+
+#  End-to-End Smoke Test
+
+Verified:
+
+- Login works
+- Upload works
+- Download works
+- Search works
+- Event Grid publishes event
+- Function triggered via Event Grid
+- Thumbnail generated
+- Rate limit (11 uploads → 429)
+- Cache working (second GET faster)
+- Availability test green (3 regions)
+- Custom telemetry visible in Live Metrics
+
+---
+
+#  GitHub Cleanup
+
+- All feature branches merged
+- Unused branches deleted
+- PR history clean
+- GitHub Actions all green
+- Contributors balanced
+- 20+ PRs merged during sprint
+- README updated
+- Architecture diagram committed
+
+---
+
+#  Final Sprint Checklist
+
+- Dockerfile created & tested
+- Image pushed to ACR
+- Container App deployed
+- Managed Identity enabled
+- Key Vault access configured
+- Architecture diagram added
+- Demo Q&A rehearsed
+- Smoke test passed
+- Event-driven flow verified
+- Monitoring validated
+
+---
+
+#  Outcome
+
+DocVault is now:
+
+- Containerized
+- Event-driven
+- Secure (Zero credentials)
+- Fully observable
+- Auto-scaling
+- Production deployed
+- Demo-ready
+
+13+ Azure services integrated with CI/CD and enterprise architecture principles.
+
+---
+
+#  Team
+
+- Akshay – Backend & Containerization
+- Vaibhav – Azure Infrastructure & DevOps
+- Vikrant – Frontend & UI
+
+---
+
+#  Sprint Complete
+
+---
+
+# Production Deployment
+
+## Frontend (Azure Static Web Apps)
+
+🔗 https://delightful-desert-045289200.2.azurestaticapps.net
+
+Accessible from all devices and browsers.
