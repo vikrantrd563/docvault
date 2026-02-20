@@ -42,108 +42,100 @@ interface QItem {
   imports: [CommonModule, MatIconModule, MatTooltipModule, MatSnackBarModule, RouterModule],
   template: `
     <div class="page">
+
       <!-- Header -->
-      <div class="hdr">
+      <div class="page-header">
         <div>
-          <h1 class="htitle">Upload Files</h1>
-          <p class="hsub">Drag &amp; drop or browse — supports any file type, multiple at once</p>
+          <h1 class="page-title">Upload Files ☁️</h1>
+          <p class="page-sub">Drag & drop or browse — supports any file type</p>
         </div>
-        <a routerLink="/documents" class="go-files">
-          <mat-icon>folder_open</mat-icon> View My Files
+        <a routerLink="/documents" class="view-files-btn">
+          <mat-icon>folder_open</mat-icon>
+          My Files
         </a>
       </div>
 
-      <!-- Drop zone -->
-      <div
-        class="dropzone"
-        [class.drag]="dragging"
+      <!-- Drop Zone -->
+      <div class="dropzone" [class.dragging]="dragging"
         (dragenter)="dragging = true"
         (dragover)="onDragOver($event)"
         (dragleave)="onDragLeave($event)"
         (drop)="onDrop($event)"
-        (click)="fi.click()"
-      >
+        (click)="fi.click()">
         <input #fi type="file" multiple hidden (change)="onPick($event)" />
 
-        <div class="dz-inner" [class.drag]="dragging">
-          <div class="dz-icon-ring">
-            <mat-icon class="dz-icon">cloud_upload</mat-icon>
+        <div class="dz-content">
+          <div class="dz-ring" [class.active]="dragging">
+            <mat-icon class="dz-icon">{{ dragging ? 'file_download' : 'cloud_upload' }}</mat-icon>
           </div>
-          <p class="dz-title">{{ dragging ? 'Drop to upload' : 'Drag files here' }}</p>
+          <p class="dz-title">{{ dragging ? 'Drop your files here!' : 'Drag files here to upload' }}</p>
           <p class="dz-or">— or —</p>
           <button class="browse-btn" (click)="fi.click(); $event.stopPropagation()">
-            <mat-icon>folder_open</mat-icon> Browse files
+            <mat-icon>folder_open</mat-icon>
+            Browse files
           </button>
           <p class="dz-hint">PDF, DOCX, XLSX, PPTX, PNG, JPG, ZIP and more · up to 100 MB each</p>
         </div>
       </div>
 
       <!-- Queue -->
-      <div class="queue" *ngIf="queue.length > 0">
-        <div class="q-header">
-          <div class="q-stats">
-            <span class="q-total">{{ queue.length }} file{{ queue.length !== 1 ? 's' : '' }}</span>
+      <div class="queue-wrap" *ngIf="queue.length > 0">
+
+        <!-- Queue Header -->
+        <div class="queue-header">
+          <div class="queue-stats">
+            <span class="q-count">{{ queue.length }} file{{ queue.length !== 1 ? 's' : '' }}</span>
             <span class="q-sep">·</span>
-            <span class="q-done" *ngIf="doneCount">{{ doneCount }} uploaded</span>
-            <span class="q-err" *ngIf="errCount">{{ errCount }} failed</span>
-            <span class="q-pend" *ngIf="pendCount">{{ pendCount }} pending</span>
+            <span class="stat-done" *ngIf="doneCount">✅ {{ doneCount }} done</span>
+            <span class="stat-err" *ngIf="errCount">❌ {{ errCount }} failed</span>
+            <span class="stat-pend" *ngIf="pendCount">🕐 {{ pendCount }} pending</span>
           </div>
-          <div class="q-actions">
-            <button class="qa-clear" *ngIf="doneCount || errCount" (click)="clearFinished()">
-              <mat-icon>clear_all</mat-icon> Clear finished
+          <div class="queue-actions">
+            <button class="btn-clear" *ngIf="doneCount || errCount" (click)="clearFinished()">
+              <mat-icon>clear_all</mat-icon> Clear done
             </button>
-            <button class="qa-upload" (click)="uploadAll()" [disabled]="!pendCount || uploading">
+            <button class="btn-upload" (click)="uploadAll()" [disabled]="!pendCount || uploading">
               <mat-icon>cloud_upload</mat-icon>
-              {{
-                uploading
-                  ? 'Uploading…'
-                  : 'Upload ' + pendCount + ' file' + (pendCount !== 1 ? 's' : '')
-              }}
+              {{ uploading ? 'Uploading…' : 'Upload ' + pendCount + ' file' + (pendCount !== 1 ? 's' : '') }}
             </button>
           </div>
         </div>
 
-        <!-- Overall progress bar when uploading -->
-        <div class="overall-bar" *ngIf="uploading">
-          <div class="ob-fill" [style.width.%]="overallPct"></div>
-          <span class="ob-txt">{{ overallPct | number: '1.0-0' }}%</span>
+        <!-- Overall Progress -->
+        <div class="overall-progress" *ngIf="uploading">
+          <div class="op-bar">
+            <div class="op-fill" [style.width.%]="overallPct"></div>
+          </div>
+          <span class="op-pct">{{ overallPct | number:'1.0-0' }}%</span>
         </div>
 
-        <div class="q-list">
-          <div class="q-item" *ngFor="let q of queue; let i = index; trackBy: trackIdx">
-            <!-- Thumbnail / icon -->
-            <div class="qi-thumb">
-              <img *ngIf="q.preview" [src]="q.preview" class="qi-img" />
-              <div *ngIf="!q.preview" class="qi-icon" [style.background]="extInfo(q.file).bg">
-                <mat-icon [style.color]="extInfo(q.file).color">{{
-                  extInfo(q.file).icon
-                }}</mat-icon>
+        <!-- File List -->
+        <div class="file-list">
+          <div class="file-item" *ngFor="let q of queue; let i = index; trackBy: trackIdx">
+
+            <!-- Thumb -->
+            <div class="file-thumb">
+              <img *ngIf="q.preview" [src]="q.preview" class="thumb-img"/>
+              <div *ngIf="!q.preview" class="thumb-icon" [style.background]="extInfo(q.file).bg">
+                <mat-icon [style.color]="extInfo(q.file).color">{{ extInfo(q.file).icon }}</mat-icon>
               </div>
-              <!-- Done overlay -->
-              <div class="qi-done-ring" *ngIf="q.status === 'done'">
+              <div class="thumb-done" *ngIf="q.status === 'done'">
                 <mat-icon>check</mat-icon>
               </div>
             </div>
 
             <!-- Info -->
-            <div class="qi-info">
-              <p class="qi-name" [title]="q.file.name">{{ q.file.name }}</p>
-              <p class="qi-meta">
-                {{ fmtSize(q.file.size) }} · {{ q.file.name.split('.').pop()?.toUpperCase() }}
-              </p>
-              <!-- progress bar -->
-              <div class="qi-bar" *ngIf="q.status === 'uploading'">
-                <div
-                  class="qi-fill"
-                  [style.width.%]="q.progress"
-                  [class.fast]="q.progress > 80"
-                ></div>
+            <div class="file-info">
+              <p class="file-name" [title]="q.file.name">{{ q.file.name }}</p>
+              <p class="file-meta">{{ fmtSize(q.file.size) }} · {{ q.file.name.split('.').pop()?.toUpperCase() }}</p>
+              <div class="file-progress" *ngIf="q.status === 'uploading'">
+                <div class="fp-fill" [style.width.%]="q.progress" [class.fast]="q.progress > 80"></div>
               </div>
-              <p class="qi-err-txt" *ngIf="q.status === 'error'">{{ q.error }}</p>
+              <p class="file-error" *ngIf="q.status === 'error'">{{ q.error }}</p>
             </div>
 
             <!-- Badge -->
-            <span class="qbadge" [ngClass]="q.status">
+            <span class="status-badge" [class]="q.status">
               <mat-icon *ngIf="q.status === 'pending'">schedule</mat-icon>
               <mat-icon *ngIf="q.status === 'uploading'" class="spin">sync</mat-icon>
               <mat-icon *ngIf="q.status === 'done'">check_circle</mat-icon>
@@ -152,534 +144,390 @@ interface QItem {
             </span>
 
             <!-- Remove -->
-            <button class="qi-rm" [disabled]="q.status === 'uploading'" (click)="remove(i)">
+            <button class="file-remove" [disabled]="q.status === 'uploading'" (click)="remove(i)">
               <mat-icon>close</mat-icon>
             </button>
           </div>
         </div>
 
-        <!-- Post-upload CTA -->
-        <div class="q-footer" *ngIf="doneCount > 0 && !uploading">
-          <mat-icon style="color:#188038">check_circle</mat-icon>
-          <span>{{ doneCount }} file{{ doneCount !== 1 ? 's' : '' }} uploaded successfully</span>
-          <a routerLink="/documents" class="q-view-link">
+        <!-- Success Footer -->
+        <div class="success-footer" *ngIf="doneCount > 0 && !uploading">
+          <span>🎉 {{ doneCount }} file{{ doneCount !== 1 ? 's' : '' }} uploaded successfully!</span>
+          <a routerLink="/documents" class="view-link">
             <mat-icon>folder_open</mat-icon> View in My Files
           </a>
         </div>
       </div>
+
     </div>
   `,
-  styles: [
-    `
-      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+  styles: [`
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
 
-      :host {
-        --blue: #0061fe;
-        --blue-soft: #ebf3ff;
-        --text: #1c1c1e;
-        --sub: #636366;
-        --border: #e5e5ea;
-        --white: #ffffff;
-        --hover: #f5f5f7;
-        display: block;
-        font-family: 'Plus Jakarta Sans', sans-serif;
-        font-size: 14px;
-        color: var(--text);
-        background: #f2f2f7;
-        min-height: 100vh;
-        padding: 24px;
-      }
+    :host {
+      --teal: #2EC4B6;
+      --teal-light: #E8FAF9;
+      --coral: #FF6B6B;
+      --coral-light: #FFF0F0;
+      --text: #1A1A2E;
+      --sub: #6B7280;
+      --border: #E5E7EB;
+      --white: #FFFFFF;
+      --bg: #F8FAFB;
+      display: block;
+      font-family: 'Nunito', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      padding: 28px;
+      color: var(--text);
+    }
 
-      /* HEADER */
-      .hdr {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 22px;
-        gap: 12px;
-      }
-      .htitle {
-        font-size: 22px;
-        font-weight: 700;
-        margin-bottom: 4px;
-      }
-      .hsub {
-        font-size: 13px;
-        color: var(--sub);
-      }
-      .go-files {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        border: 1px solid var(--border);
-        border-radius: 28px;
-        padding: 8px 18px;
-        text-decoration: none;
-        color: var(--text);
-        font-size: 13px;
-        font-weight: 600;
-        background: var(--white);
-        transition: all 0.15s;
-        white-space: nowrap;
-      }
-      .go-files mat-icon {
-        font-size: 18px;
-      }
-      .go-files:hover {
-        border-color: var(--blue);
-        color: var(--blue);
-      }
+    /* Header */
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .page-title {
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 4px;
+      letter-spacing: -0.5px;
+    }
+    .page-sub { font-size: 14px; color: var(--sub); }
+    .view-files-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1.5px solid var(--border);
+      border-radius: 50px;
+      padding: 10px 20px;
+      text-decoration: none;
+      color: var(--text);
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      background: var(--white);
+      transition: all 0.2s;
+    }
+    .view-files-btn mat-icon { font-size: 18px; }
+    .view-files-btn:hover {
+      border-color: var(--teal);
+      color: var(--teal);
+    }
 
-      /* DROP ZONE */
-      .dropzone {
-        background: var(--white);
-        border: 2px dashed #c7c7cc;
-        border-radius: 20px;
-        padding: 0;
-        overflow: hidden;
-        cursor: pointer;
-        transition:
-          border-color 0.2s,
-          background 0.2s;
-        margin-bottom: 20px;
-      }
-      .dropzone:hover {
-        border-color: var(--blue);
-      }
-      .dropzone.drag {
-        border-color: var(--blue);
-        background: var(--blue-soft);
-        border-style: solid;
-      }
+    /* Dropzone */
+    .dropzone {
+      background: var(--white);
+      border: 2.5px dashed #D1D5DB;
+      border-radius: 24px;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .dropzone:hover { border-color: var(--teal); }
+    .dropzone.dragging {
+      border-color: var(--teal);
+      border-style: solid;
+      background: var(--teal-light);
+    }
+    .dz-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 64px 24px;
+    }
+    .dz-ring {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: var(--teal-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 18px;
+      box-shadow: 0 0 0 10px rgba(46,196,182,0.08);
+      transition: all 0.2s;
+    }
+    .dz-ring.active {
+      background: var(--teal);
+      box-shadow: 0 0 0 16px rgba(46,196,182,0.15);
+      animation: pulse 1s ease infinite alternate;
+    }
+    @keyframes pulse {
+      from { box-shadow: 0 0 0 10px rgba(46,196,182,0.1); }
+      to { box-shadow: 0 0 0 20px rgba(46,196,182,0.2); }
+    }
+    .dz-icon {
+      font-size: 42px;
+      color: var(--teal);
+    }
+    .dz-ring.active .dz-icon { color: white; }
+    .dz-title {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+    .dz-or { font-size: 13px; color: var(--sub); margin-bottom: 14px; }
+    .browse-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--teal);
+      color: white;
+      border: none;
+      padding: 11px 24px;
+      border-radius: 50px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 10px rgba(46,196,182,0.3);
+    }
+    .browse-btn:hover { background: #25a99d; transform: translateY(-1px); }
+    .browse-btn mat-icon { font-size: 18px; }
+    .dz-hint { font-size: 12px; color: #9CA3AF; }
 
-      .dz-inner {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        padding: 60px 24px;
-        transition: transform 0.2s;
-      }
-      .dz-inner.drag {
-        transform: scale(1.01);
-      }
+    /* Queue */
+    .queue-wrap {
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+    .queue-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .queue-stats {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+    .q-count { font-weight: 800; }
+    .q-sep { color: var(--sub); }
+    .stat-done { color: #188038; font-weight: 600; }
+    .stat-err { color: #D93025; font-weight: 600; }
+    .stat-pend { color: var(--sub); font-weight: 600; }
+    .queue-actions { display: flex; gap: 8px; }
 
-      .dz-icon-ring {
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        background: var(--blue-soft);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 16px;
-        box-shadow: 0 0 0 8px rgba(0, 97, 254, 0.06);
-      }
-      .dz-icon {
-        font-size: 40px;
-        color: var(--blue);
-      }
-      .dropzone.drag .dz-icon-ring {
-        animation: pulse 1s ease infinite alternate;
-      }
-      @keyframes pulse {
-        from {
-          box-shadow: 0 0 0 8px rgba(0, 97, 254, 0.06);
-        }
-        to {
-          box-shadow: 0 0 0 16px rgba(0, 97, 254, 0.12);
-        }
-      }
+    .btn-clear {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      background: none;
+      cursor: pointer;
+      font-family: 'Nunito', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--sub);
+      transition: all 0.15s;
+    }
+    .btn-clear:hover { background: var(--bg); color: var(--text); }
+    .btn-clear mat-icon { font-size: 16px; }
 
-      .dz-title {
-        font-size: 20px;
-        font-weight: 700;
-        margin-bottom: 6px;
-      }
-      .dz-or {
-        font-size: 13px;
-        color: var(--sub);
-        margin-bottom: 12px;
-      }
-      .browse-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        background: var(--blue);
-        color: #fff;
-        border: none;
-        padding: 10px 22px;
-        border-radius: 28px;
-        font-family: inherit;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 0.15s;
-        margin-bottom: 14px;
-      }
-      .browse-btn:hover {
-        background: #004ed4;
-      }
-      .browse-btn mat-icon {
-        font-size: 18px;
-      }
-      .dz-hint {
-        font-size: 12px;
-        color: #9ca3af;
-      }
+    .btn-upload {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 20px;
+      border-radius: 50px;
+      border: none;
+      background: var(--teal);
+      color: white;
+      cursor: pointer;
+      font-family: 'Nunito', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(46,196,182,0.3);
+    }
+    .btn-upload mat-icon { font-size: 16px; }
+    .btn-upload:hover:not([disabled]) { background: #25a99d; }
+    .btn-upload[disabled] { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 
-      /* QUEUE */
-      .queue {
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        overflow: hidden;
-      }
-      .q-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 10px;
-        padding: 14px 18px;
-        border-bottom: 1px solid var(--border);
-      }
-      .q-stats {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 14px;
-        font-weight: 600;
-      }
-      .q-sep {
-        color: var(--sub);
-      }
-      .q-done {
-        color: #188038;
-      }
-      .q-err {
-        color: #d93025;
-      }
-      .q-pend {
-        color: var(--sub);
-      }
-      .q-actions {
-        display: flex;
-        gap: 8px;
-      }
+    /* Overall Progress */
+    .overall-progress {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .op-bar {
+      flex: 1;
+      height: 6px;
+      background: #E5E7EB;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .op-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--teal), #4ECDC4);
+      border-radius: 6px;
+      transition: width 0.3s ease;
+    }
+    .op-pct {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--teal);
+      white-space: nowrap;
+    }
 
-      .qa-clear {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        padding: 8px 14px;
-        border-radius: 8px;
-        border: 1px solid var(--border);
-        background: none;
-        cursor: pointer;
-        font-family: inherit;
-        font-size: 13px;
-        font-weight: 500;
-        color: var(--sub);
-        transition: all 0.12s;
-      }
-      .qa-clear:hover {
-        background: var(--hover);
-        color: var(--text);
-      }
-      .qa-clear mat-icon {
-        font-size: 16px;
-      }
+    /* File List */
+    .file-list { max-height: 460px; overflow-y: auto; }
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      animation: slideIn 0.2s ease;
+    }
+    .file-item:last-child { border-bottom: none; }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
-      .qa-upload {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 8px 18px;
-        border-radius: 28px;
-        border: none;
-        background: var(--blue);
-        color: #fff;
-        cursor: pointer;
-        font-family: inherit;
-        font-size: 13px;
-        font-weight: 600;
-        transition: background 0.15s;
-      }
-      .qa-upload mat-icon {
-        font-size: 16px;
-      }
-      .qa-upload:hover:not([disabled]) {
-        background: #004ed4;
-      }
-      .qa-upload[disabled] {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
+    .file-thumb {
+      position: relative;
+      width: 46px;
+      height: 46px;
+      flex-shrink: 0;
+    }
+    .thumb-img {
+      width: 46px; height: 46px;
+      border-radius: 10px; object-fit: cover;
+      border: 1px solid var(--border);
+    }
+    .thumb-icon {
+      width: 46px; height: 46px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .thumb-icon mat-icon { font-size: 26px; }
+    .thumb-done {
+      position: absolute; inset: 0;
+      border-radius: 10px;
+      background: rgba(24,128,56,0.85);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .thumb-done mat-icon { font-size: 22px; color: white; }
 
-      /* Overall progress */
-      .overall-bar {
-        height: 3px;
-        background: #e5e5ea;
-        position: relative;
-      }
-      .ob-fill {
-        height: 100%;
-        background: var(--blue);
-        transition: width 0.3s ease;
-        border-radius: 0 2px 2px 0;
-      }
-      .ob-txt {
-        position: absolute;
-        right: 12px;
-        top: 4px;
-        font-size: 11px;
-        font-weight: 700;
-        color: var(--blue);
-      }
+    .file-info { flex: 1; min-width: 0; }
+    .file-name {
+      font-size: 14px; font-weight: 700;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .file-meta { font-size: 12px; color: var(--sub); margin-top: 2px; }
+    .file-progress {
+      height: 4px; background: #E5E7EB;
+      border-radius: 4px; margin-top: 6px; overflow: hidden;
+    }
+    .fp-fill {
+      height: 100%;
+      background: var(--teal);
+      border-radius: 4px;
+      transition: width 0.25s ease;
+    }
+    .fp-fill.fast { background: #188038; }
+    .file-error { font-size: 12px; color: #D93025; margin-top: 4px; }
 
-      /* Queue list */
-      .q-list {
-        max-height: 440px;
-        overflow-y: auto;
-      }
-      .q-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px 18px;
-        border-bottom: 1px solid var(--border);
-        animation: slideIn 0.2s ease;
-      }
-      .q-item:last-child {
-        border-bottom: none;
-      }
-      @keyframes slideIn {
-        from {
-          opacity: 0;
-          transform: translateY(-6px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .status-badge mat-icon { font-size: 14px; width: 14px; height: 14px; }
+    .status-badge.pending { background: #F3F4F6; color: var(--sub); }
+    .status-badge.uploading { background: var(--teal-light); color: var(--teal); }
+    .status-badge.done { background: #DCFCE7; color: #188038; }
+    .status-badge.error { background: #FDE8E6; color: #D93025; }
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-      .qi-thumb {
-        position: relative;
-        width: 44px;
-        height: 44px;
-        flex-shrink: 0;
-      }
-      .qi-img {
-        width: 44px;
-        height: 44px;
-        border-radius: 8px;
-        object-fit: cover;
-        border: 1px solid var(--border);
-      }
-      .qi-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .qi-icon mat-icon {
-        font-size: 24px;
-      }
-      .qi-done-ring {
-        position: absolute;
-        inset: 0;
-        border-radius: 8px;
-        background: rgba(24, 128, 56, 0.85);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .qi-done-ring mat-icon {
-        font-size: 22px;
-        color: #fff;
-      }
+    .file-remove {
+      background: none; border: none; cursor: pointer;
+      border-radius: 50%; width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--sub); flex-shrink: 0; transition: all 0.15s;
+    }
+    .file-remove mat-icon { font-size: 16px; }
+    .file-remove:hover:not([disabled]) { background: var(--coral-light); color: var(--coral); }
+    .file-remove[disabled] { opacity: 0.3; cursor: not-allowed; }
 
-      .qi-info {
-        flex: 1;
-        min-width: 0;
-      }
-      .qi-name {
-        font-size: 14px;
-        font-weight: 500;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .qi-meta {
-        font-size: 12px;
-        color: var(--sub);
-        margin-top: 2px;
-      }
-      .qi-bar {
-        height: 3px;
-        background: #e5e5ea;
-        border-radius: 4px;
-        margin-top: 6px;
-        overflow: hidden;
-      }
-      .qi-fill {
-        height: 100%;
-        background: var(--blue);
-        border-radius: 4px;
-        transition: width 0.25s ease;
-      }
-      .qi-fill.fast {
-        background: #188038;
-      }
-      .qi-err-txt {
-        font-size: 12px;
-        color: #d93025;
-        margin-top: 4px;
-      }
-
-      .qbadge {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 12px;
-        font-weight: 600;
-        padding: 4px 10px;
-        border-radius: 20px;
-        white-space: nowrap;
-        flex-shrink: 0;
-      }
-      .qbadge mat-icon {
-        font-size: 14px;
-        width: 14px;
-        height: 14px;
-      }
-      .qbadge.pending {
-        background: #f1f3f4;
-        color: var(--sub);
-      }
-      .qbadge.uploading {
-        background: var(--blue-soft);
-        color: var(--blue);
-      }
-      .qbadge.done {
-        background: #e6f4ea;
-        color: #188038;
-      }
-      .qbadge.error {
-        background: #fde8e6;
-        color: #d93025;
-      }
-      .spin {
-        animation: spin 1s linear infinite;
-      }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-
-      .qi-rm {
-        background: none;
-        border: none;
-        cursor: pointer;
-        border-radius: 50%;
-        width: 28px;
-        height: 28px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--sub);
-        flex-shrink: 0;
-        transition: all 0.12s;
-      }
-      .qi-rm mat-icon {
-        font-size: 16px;
-      }
-      .qi-rm:hover:not([disabled]) {
-        background: #fde8e6;
-        color: #d93025;
-      }
-      .qi-rm[disabled] {
-        opacity: 0.3;
-        cursor: not-allowed;
-      }
-
-      /* Footer */
-      .q-footer {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 12px 18px;
-        background: #f0faf0;
-        border-top: 1px solid #c8e6c9;
-        font-size: 13px;
-        color: #188038;
-        font-weight: 500;
-      }
-      .q-footer mat-icon {
-        font-size: 18px;
-      }
-      .q-view-link {
-        margin-left: auto;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        color: var(--blue);
-        text-decoration: none;
-        font-size: 13px;
-        font-weight: 600;
-      }
-      .q-view-link mat-icon {
-        font-size: 15px;
-      }
-      .q-view-link:hover {
-        text-decoration: underline;
-      }
-    `,
-  ],
+    /* Success Footer */
+    .success-footer {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 20px;
+      background: #F0FDF4;
+      border-top: 1px solid #BBF7D0;
+      font-size: 14px;
+      color: #188038;
+      font-weight: 700;
+      flex-wrap: wrap;
+    }
+    .view-link {
+      margin-left: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--teal);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .view-link mat-icon { font-size: 16px; }
+    .view-link:hover { text-decoration: underline; }
+  `]
 })
 export class UploadComponent {
   queue: QItem[] = [];
   dragging = false;
   uploading = false;
 
-  get pendCount() {
-    return this.queue.filter((q) => q.status === 'pending').length;
-  }
-  get doneCount() {
-    return this.queue.filter((q) => q.status === 'done').length;
-  }
-  get errCount() {
-    return this.queue.filter((q) => q.status === 'error').length;
-  }
+  get pendCount() { return this.queue.filter(q => q.status === 'pending').length; }
+  get doneCount() { return this.queue.filter(q => q.status === 'done').length; }
+  get errCount() { return this.queue.filter(q => q.status === 'error').length; }
   get overallPct() {
-    const items = this.queue.filter((q) => q.status !== 'pending');
+    const items = this.queue.filter(q => q.status !== 'pending');
     if (!items.length) return 0;
-    return (
-      items.reduce((s, q) => s + (q.status === 'done' ? 100 : q.progress), 0) / this.queue.length
-    );
+    return items.reduce((s, q) => s + (q.status === 'done' ? 100 : q.progress), 0) / this.queue.length;
   }
 
-  constructor(
-    private svc: DocumentService,
-    private snack: MatSnackBar,
-    private cdr: ChangeDetectorRef,
-  ) {}
+  constructor(private svc: DocumentService, private snack: MatSnackBar, private cdr: ChangeDetectorRef) {}
 
-  onDragOver(e: DragEvent) {
-    e.preventDefault();
-    this.dragging = true;
-  }
+  onDragOver(e: DragEvent) { e.preventDefault(); this.dragging = true; }
   onDragLeave(e: DragEvent) {
     if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node)) this.dragging = false;
   }
   onDrop(e: DragEvent) {
-    e.preventDefault();
-    this.dragging = false;
+    e.preventDefault(); this.dragging = false;
     this.enqueue(Array.from(e.dataTransfer?.files ?? []));
   }
   onPick(e: Event) {
@@ -689,19 +537,11 @@ export class UploadComponent {
 
   enqueue(files: File[]) {
     for (const f of files) {
-      if (this.queue.some((q) => q.file.name === f.name && q.file.size === f.size)) continue;
+      if (this.queue.some(q => q.file.name === f.name && q.file.size === f.size)) continue;
       const item: QItem = { file: f, status: 'pending', progress: 0, error: '', preview: null };
-      // Generate image preview
-      if (
-        ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(
-          (f.name.split('.').pop() ?? '').toLowerCase(),
-        )
-      ) {
+      if (['png','jpg','jpeg','gif','webp'].includes((f.name.split('.').pop() ?? '').toLowerCase())) {
         const reader = new FileReader();
-        reader.onload = (ev) => {
-          item.preview = ev.target?.result as string;
-          this.cdr.markForCheck();
-        };
+        reader.onload = ev => { item.preview = ev.target?.result as string; this.cdr.markForCheck(); };
         reader.readAsDataURL(f);
       }
       this.queue.push(item);
@@ -709,27 +549,19 @@ export class UploadComponent {
     this.cdr.markForCheck();
   }
 
-  remove(i: number) {
-    this.queue.splice(i, 1);
-    this.cdr.markForCheck();
-  }
+  remove(i: number) { this.queue.splice(i, 1); this.cdr.markForCheck(); }
   clearFinished() {
-    this.queue = this.queue.filter((q) => q.status === 'pending' || q.status === 'uploading');
+    this.queue = this.queue.filter(q => q.status === 'pending' || q.status === 'uploading');
     this.cdr.markForCheck();
   }
 
   uploadAll() {
-    const pending = this.queue.filter((q) => q.status === 'pending');
+    const pending = this.queue.filter(q => q.status === 'pending');
     if (!pending.length) return;
     this.uploading = true;
     let done = 0;
-
     for (const item of pending) {
-      item.status = 'uploading';
-      item.progress = 0;
-      this.cdr.markForCheck();
-
-      // Fake progress ticks
+      item.status = 'uploading'; item.progress = 0; this.cdr.markForCheck();
       const tick = setInterval(() => {
         if (item.status === 'uploading' && item.progress < 85) {
           item.progress += Math.round(8 + Math.random() * 12);
@@ -737,31 +569,24 @@ export class UploadComponent {
           this.cdr.markForCheck();
         }
       }, 120);
-
       const fd = new FormData();
       fd.append('file', item.file);
       this.svc.upload(fd).subscribe({
         next: () => {
-          clearInterval(tick);
-          item.progress = 100;
-          item.status = 'done';
-          done++;
+          clearInterval(tick); item.progress = 100; item.status = 'done'; done++;
           if (done === pending.length) {
             this.uploading = false;
-            this.snack.open(`${done} file${done > 1 ? 's' : ''} uploaded!`, 'View', {
-              duration: 4000,
-            });
+            this.snack.open(`🎉 ${done} file${done > 1 ? 's' : ''} uploaded!`, 'View', { duration: 4000 });
           }
           this.cdr.markForCheck();
         },
-        error: (err) => {
-          clearInterval(tick);
-          item.status = 'error';
+        error: err => {
+          clearInterval(tick); item.status = 'error';
           item.error = err?.error?.message || 'Upload failed — check that the API is running';
           done++;
           if (done === pending.length) this.uploading = false;
           this.cdr.markForCheck();
-        },
+        }
       });
     }
   }
@@ -775,7 +600,5 @@ export class UploadComponent {
     if (b < 1048576) return `${(b / 1024).toFixed(1)} KB`;
     return `${(b / 1048576).toFixed(1)} MB`;
   }
-  trackIdx(i: number) {
-    return i;
-  }
+  trackIdx(i: number) { return i; }
 }

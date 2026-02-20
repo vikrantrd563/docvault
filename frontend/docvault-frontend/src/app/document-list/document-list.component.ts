@@ -1,10 +1,6 @@
 import {
-  Component,
-  OnInit,
-  OnDestroy,
-  HostListener,
-  ChangeDetectionStrategy,
-  ChangeDetectorRef,
+  Component, OnInit, OnDestroy, HostListener,
+  ChangeDetectionStrategy, ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -14,8 +10,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { DocumentService, DocumentMetadata } from '../services/document.service';
 
-/* ──────────────────────────────────────────── */
-type SortKey = 'name' | 'modified' | 'size' | 'type';
+type SortKey = 'name' | 'modified' | 'size' | 'type' | 'date-asc' | 'date-desc';
 type SortDir = 'asc' | 'desc';
 type Mode = 'grid' | 'list';
 type View = 'my-files' | 'starred' | 'recent' | 'trash';
@@ -57,13 +52,9 @@ const EXT_MAP: Record<string, { key: string; icon: string; color: string; bg: st
   rar: { key: 'zip', icon: 'folder_zip', color: '#F29900', bg: '#FEF9E5' },
   '7z': { key: 'zip', icon: 'folder_zip', color: '#F29900', bg: '#FEF9E5' },
 };
-
 function getInfo(ext: string) {
-  return (
-    EXT_MAP[ext] ?? { key: 'other', icon: 'insert_drive_file', color: '#5F6368', bg: '#F1F3F4' }
-  );
+  return EXT_MAP[ext] ?? { key: 'other', icon: 'insert_drive_file', color: '#5F6368', bg: '#F1F3F4' };
 }
-/* ──────────────────────────────────────────── */
 
 @Component({
   selector: 'app-document-list',
@@ -71,391 +62,279 @@ function getInfo(ext: string) {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, MatIconModule, MatTooltipModule, RouterModule],
   template: `
-    <!-- ═══════════════════════════════════════════════════════
-     TOOLBAR
-═══════════════════════════════════════════════════════ -->
+    <!-- TOOLBAR -->
     <div class="toolbar">
-      <!-- Left: breadcrumb title -->
       <div class="toolbar-left">
-        <mat-icon class="tb-icon">{{ viewIcon }}</mat-icon>
+        <mat-icon class="tb-view-icon">{{ viewIcon }}</mat-icon>
         <h1 class="tb-title">{{ viewTitle }}</h1>
       </div>
 
-      <!-- Centre: Search bar -->
-      <div class="search-bar" [class.focused]="sfocus">
-        <mat-icon class="s-icon">search</mat-icon>
-        <input
-          #searchEl
-          class="s-input"
-          placeholder="Search in DocVault"
-          [(ngModel)]="query"
-          (ngModelChange)="onQueryChange()"
-          (focus)="sfocus = true"
-          (blur)="sfocus = false"
-        />
+      <div class="search-wrap" [class.focused]="sfocus">
+        <mat-icon class="s-ico">search</mat-icon>
+        <input class="s-input" placeholder="Search in DocVault…"
+          [(ngModel)]="query" (ngModelChange)="onQueryChange()"
+          (focus)="sfocus=true" (blur)="sfocus=false"/>
         <button *ngIf="query" class="s-clear" (click)="clearSearch()">
           <mat-icon>close</mat-icon>
         </button>
       </div>
 
-      <!-- Right: actions -->
       <div class="toolbar-right">
-        <!-- Bulk actions when selected -->
         <ng-container *ngIf="selectedCount > 0">
-          <span class="sel-count">{{ selectedCount }} selected</span>
-          <button class="tb-btn" (click)="bulkStar()" matTooltip="Star selected">
+          <span class="sel-pill">{{ selectedCount }} selected</span>
+          <button class="tb-icon-btn" (click)="bulkStar()" matTooltip="Star selected">
             <mat-icon>star_outline</mat-icon>
           </button>
-          <button class="tb-btn" (click)="bulkTrash()" matTooltip="Move to Trash">
+          <button class="tb-icon-btn" (click)="bulkTrash()" matTooltip="Trash selected">
             <mat-icon>delete_outline</mat-icon>
           </button>
-          <button class="tb-btn" (click)="clearSelection()" matTooltip="Clear selection">
+          <button class="tb-icon-btn" (click)="clearSelection()" matTooltip="Deselect">
             <mat-icon>close</mat-icon>
           </button>
         </ng-container>
 
-        <!-- View toggle -->
         <div class="view-toggle">
-          <button
-            class="vt-btn"
-            [class.on]="mode === 'grid'"
-            (click)="mode = 'grid'"
-            matTooltip="Grid view"
-          >
+          <button class="vt-btn" [class.on]="mode==='grid'" (click)="mode='grid'" matTooltip="Grid">
             <mat-icon>grid_view</mat-icon>
           </button>
-          <button
-            class="vt-btn"
-            [class.on]="mode === 'list'"
-            (click)="mode = 'list'"
-            matTooltip="List view"
-          >
+          <button class="vt-btn" [class.on]="mode==='list'" (click)="mode='list'" matTooltip="List">
             <mat-icon>view_list</mat-icon>
           </button>
         </div>
 
-        <button class="tb-btn" (click)="load()" matTooltip="Refresh">
+        <button class="tb-icon-btn" (click)="load()" matTooltip="Refresh">
           <mat-icon [class.spinning]="loading">refresh</mat-icon>
         </button>
 
-        <!-- Sort menu -->
         <div class="sort-wrap">
-          <button class="tb-btn sort-trigger" (click)="sortOpen = !sortOpen">
+          <button class="sort-trigger tb-icon-btn" (click)="sortOpen=!sortOpen">
             <mat-icon>sort</mat-icon>
             <span>{{ sortLabel }}</span>
             <mat-icon class="arr">expand_more</mat-icon>
           </button>
           <div class="sort-menu" *ngIf="sortOpen" (click)="$event.stopPropagation()">
-            <button
-              *ngFor="let s of sortOptions"
-              class="sm-item"
-              [class.on]="sortKey === s.key"
-              (click)="setSort(s.key)"
-            >
-              <mat-icon *ngIf="sortKey === s.key">
-                {{ sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-              </mat-icon>
-              <mat-icon *ngIf="sortKey !== s.key" style="opacity:0">arrow_upward</mat-icon>
+            <p class="sm-section">Sort by</p>
+            <button *ngFor="let s of sortOptions" class="sm-item" [class.on]="sortKey===s.key" (click)="setSort(s.key)">
+              <mat-icon *ngIf="sortKey===s.key">{{ sortDir==='asc' ? 'arrow_upward' : 'arrow_downward' }}</mat-icon>
+              <mat-icon *ngIf="sortKey!==s.key" style="opacity:0">arrow_upward</mat-icon>
               {{ s.label }}
+            </button>
+            <div class="sm-divider"></div>
+            <p class="sm-section">Filter by date</p>
+            <div class="sm-date-row">
+              <label class="sm-date-label">From</label>
+              <input type="date" class="sm-date-input" [(ngModel)]="dateFrom" (change)="applyAll()"/>
+            </div>
+            <div class="sm-date-row">
+              <label class="sm-date-label">To</label>
+              <input type="date" class="sm-date-input" [(ngModel)]="dateTo" (change)="applyAll()"/>
+            </div>
+            <button class="sm-clear-date" *ngIf="dateFrom || dateTo" (click)="clearDateFilter()">
+              <mat-icon>close</mat-icon> Clear date filter
             </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════
-     FILTER CHIPS
-═══════════════════════════════════════════════════════ -->
+    <!-- FILTER CHIPS -->
     <div class="chips-row">
-      <button class="chip" [class.on]="typeFilter === 'all'" (click)="setType('all')">
-        All files
+      <button class="chip" [class.on]="typeFilter==='all'" (click)="setType('all')">All files</button>
+      <button class="chip" [class.on]="typeFilter==='pdf'" (click)="setType('pdf')">
+        <span class="dot" style="background:#D93025"></span>PDF
       </button>
-      <button class="chip" [class.on]="typeFilter === 'pdf'" (click)="setType('pdf')">
-        <span class="cdot" style="background:#D93025"></span>PDF
+      <button class="chip" [class.on]="typeFilter==='doc'" (click)="setType('doc')">
+        <span class="dot" style="background:#1A73E8"></span>Docs
       </button>
-      <button class="chip" [class.on]="typeFilter === 'doc'" (click)="setType('doc')">
-        <span class="cdot" style="background:#1A73E8"></span>Documents
+      <button class="chip" [class.on]="typeFilter==='xls'" (click)="setType('xls')">
+        <span class="dot" style="background:#188038"></span>Sheets
       </button>
-      <button class="chip" [class.on]="typeFilter === 'xls'" (click)="setType('xls')">
-        <span class="cdot" style="background:#188038"></span>Spreadsheets
+      <button class="chip" [class.on]="typeFilter==='ppt'" (click)="setType('ppt')">
+        <span class="dot" style="background:#D56E0C"></span>Slides
       </button>
-      <button class="chip" [class.on]="typeFilter === 'ppt'" (click)="setType('ppt')">
-        <span class="cdot" style="background:#D56E0C"></span>Presentations
+      <button class="chip" [class.on]="typeFilter==='img'" (click)="setType('img')">
+        <span class="dot" style="background:#9334E6"></span>Images
       </button>
-      <button class="chip" [class.on]="typeFilter === 'img'" (click)="setType('img')">
-        <span class="cdot" style="background:#188038"></span>Images
+      <button class="chip" [class.on]="typeFilter==='vid'" (click)="setType('vid')">
+        <span class="dot" style="background:#9334E6"></span>Videos
       </button>
-      <button class="chip" [class.on]="typeFilter === 'vid'" (click)="setType('vid')">
-        <span class="cdot" style="background:#9334E6"></span>Videos
-      </button>
-      <button class="chip" [class.on]="typeFilter === 'zip'" (click)="setType('zip')">
-        <span class="cdot" style="background:#F29900"></span>Archives
+      <button class="chip" [class.on]="typeFilter==='zip'" (click)="setType('zip')">
+        <span class="dot" style="background:#F29900"></span>Archives
       </button>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════
-     LOADING
-═══════════════════════════════════════════════════════ -->
-    <div class="state-center" *ngIf="loading && rows.length === 0">
-      <div class="loader"></div>
+    <!-- LOADING -->
+    <div class="state-center" *ngIf="loading && rows.length===0">
+      <div class="spinner-ring"></div>
       <p>Loading your files…</p>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════
-     EMPTY
-═══════════════════════════════════════════════════════ -->
-    <div class="state-center" *ngIf="!loading && visible.length === 0">
-      <img
-        class="empty-art"
-        src="https://ssl.gstatic.com/docs/doclist/images/empty_state_my_drive_v2.svg"
-        alt=""
-        onerror="this.style.display='none'"
-      />
+    <!-- EMPTY -->
+    <div class="state-center" *ngIf="!loading && visible.length===0">
+      <div class="empty-illustration">
+        {{ view==='starred' ? '⭐' : view==='recent' ? '🕐' : view==='trash' ? '🗑️' : '📁' }}
+      </div>
       <p class="empty-title">
-        {{
-          query
-            ? 'No results for "' + query + '"'
-            : view === 'starred'
-              ? 'No starred files'
-              : view === 'recent'
-                ? 'No recent activity'
-                : view === 'trash'
-                  ? 'Trash is empty'
-                  : 'No files uploaded yet'
-        }}
+        {{ query ? 'No results for "' + query + '"'
+           : view==='starred' ? 'No starred files yet'
+           : view==='recent' ? 'No recent activity'
+           : view==='trash' ? 'Trash is empty'
+           : 'No files uploaded yet' }}
       </p>
-      <p class="empty-sub" *ngIf="!query && view === 'my-files'">
-        Drop files into DocVault or use the Upload button
-      </p>
-      <a class="empty-cta" routerLink="/upload" *ngIf="!query && view === 'my-files'">
-        <mat-icon>cloud_upload</mat-icon> Upload files
+      <p class="empty-sub" *ngIf="!query && view==='my-files'">Upload some files to get started!</p>
+      <a class="empty-cta" routerLink="/upload" *ngIf="!query && view==='my-files'">
+        <mat-icon>cloud_upload</mat-icon> Upload Files
       </a>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════
-     GRID VIEW
-═══════════════════════════════════════════════════════ -->
-    <div class="grid" *ngIf="mode === 'grid' && visible.length > 0" (click)="handleGridBg($event)">
-      <div
-        class="card"
-        *ngFor="let d of visible; trackBy: trackBy"
+    <!-- GRID -->
+    <div class="grid" *ngIf="mode==='grid' && visible.length>0" (click)="handleGridBg($event)">
+      <div class="file-card" *ngFor="let d of visible; trackBy: trackBy"
         [class.selected]="d.selected"
-        (click)="onCardClick(d, $event)"
+        (click)="onCardClick(d,$event)"
         (dblclick)="openPreview(d)"
-        (contextmenu)="openCtx($event, d)"
-      >
-        <!-- Thumbnail -->
+        (contextmenu)="openCtx($event,d)">
+
         <div class="card-thumb">
-          <img
-            *ngIf="isImg(d) && d.downloadUrl"
-            [src]="d.downloadUrl"
-            class="thumb-img"
-            (error)="onImgErr($event, d)"
-            [attr.data-loaded]="true"
-          />
-          <div *ngIf="!d._imgOk && !isImg(d)" class="thumb-icon" [style.background]="info(d).bg">
+          <!-- Image thumbnail -->
+          <img *ngIf="isImg(d) && d.downloadUrl && d._imgOk !== false"
+               [src]="d.downloadUrl" class="thumb-img"
+               (load)="d._imgOk = true; cdr.markForCheck()"
+               (error)="onImgErr($event,d)"/>
+          <!-- File type icon for non-images OR failed images -->
+          <div *ngIf="!isImg(d) || d._imgOk === false"
+               class="thumb-ico" [style.background]="info(d).bg">
             <mat-icon [style.color]="info(d).color">{{ info(d).icon }}</mat-icon>
           </div>
-          <div
-            *ngIf="isImg(d) && d._imgOk === false"
-            class="thumb-icon"
-            [style.background]="info(d).bg"
-          >
-            <mat-icon [style.color]="info(d).color">{{ info(d).icon }}</mat-icon>
-          </div>
-          <span class="ext-tag">{{ d.ext }}</span>
-          <!-- selection check -->
-          <div
-            class="sel-check"
-            [class.show]="d.selected"
-            (click)="toggleSelect(d); $event.stopPropagation()"
-          >
-            <div class="check-circle" [class.checked]="d.selected">
+          <span class="ext-pill">{{ d.ext }}</span>
+          <div class="sel-check" [class.show]="d.selected" (click)="toggleSelect(d);$event.stopPropagation()">
+            <div class="chk" [class.on]="d.selected">
               <mat-icon *ngIf="d.selected">check</mat-icon>
             </div>
           </div>
-          <!-- star -->
-          <button
-            class="card-star"
-            [class.on]="d.starred"
-            (click)="toggleStar(d); $event.stopPropagation()"
-            [matTooltip]="d.starred ? 'Remove star' : 'Star'"
-          >
+          <button class="star-btn" [class.starred]="d.starred" (click)="toggleStar(d);$event.stopPropagation()" [matTooltip]="d.starred?'Unstar':'Star'">
             <mat-icon>{{ d.starred ? 'star' : 'star_outline' }}</mat-icon>
           </button>
         </div>
 
-        <!-- Footer -->
-        <div class="card-foot">
-          <div class="cf-icon-sm" [style.background]="info(d).bg">
+        <div class="card-footer">
+          <div class="cf-icon" [style.background]="info(d).bg">
             <mat-icon [style.color]="info(d).color">{{ info(d).icon }}</mat-icon>
           </div>
           <div class="cf-text">
             <p class="cf-name" [title]="d.fileName">{{ d.fileName }}</p>
-            <p class="cf-meta">{{ d.uploadedAt | date: 'MMM d, y' }}</p>
+            <p class="cf-date">{{ d.uploadedAt | date: 'MMM d, y' }}</p>
           </div>
-          <button
-            class="cf-more"
-            (click)="openCtx($event, d); $event.stopPropagation()"
-            matTooltip="More options"
-          >
+          <button class="cf-more" (click)="openCtx($event,d);$event.stopPropagation()" matTooltip="More">
             <mat-icon>more_vert</mat-icon>
           </button>
         </div>
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════
-     LIST VIEW
-═══════════════════════════════════════════════════════ -->
-    <div class="list-wrap" *ngIf="mode === 'list' && visible.length > 0">
-      <!-- Column headers -->
+    <!-- LIST -->
+    <div class="list-wrap" *ngIf="mode==='list' && visible.length>0">
       <div class="list-head">
-        <div class="lh-check">
-          <div class="check-circle" [class.checked]="allSelected" (click)="toggleAll()">
+        <div class="lh-chk">
+          <div class="chk" [class.on]="allSelected" (click)="toggleAll()">
             <mat-icon *ngIf="allSelected">check</mat-icon>
-            <mat-icon *ngIf="!allSelected && selectedCount > 0">remove</mat-icon>
+            <mat-icon *ngIf="!allSelected && selectedCount>0">remove</mat-icon>
           </div>
         </div>
         <button class="lh-col sortable" (click)="setSort('name')">
-          Name
-          <mat-icon *ngIf="sortKey === 'name'">
-            {{ sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-          </mat-icon>
+          Name <mat-icon *ngIf="sortKey==='name'">{{ sortDir==='asc'?'arrow_upward':'arrow_downward' }}</mat-icon>
         </button>
         <button class="lh-col sortable" (click)="setSort('modified')">
-          Modified
-          <mat-icon *ngIf="sortKey === 'modified'">
-            {{ sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-          </mat-icon>
+          Modified <mat-icon *ngIf="sortKey==='modified'">{{ sortDir==='asc'?'arrow_upward':'arrow_downward' }}</mat-icon>
         </button>
         <button class="lh-col sortable" (click)="setSort('size')">
-          Size
-          <mat-icon *ngIf="sortKey === 'size'">
-            {{ sortDir === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-          </mat-icon>
+          Size <mat-icon *ngIf="sortKey==='size'">{{ sortDir==='asc'?'arrow_upward':'arrow_downward' }}</mat-icon>
         </button>
         <div class="lh-col">Type</div>
-        <div class="lh-col lh-act">Actions</div>
+        <div class="lh-col lh-right">Actions</div>
       </div>
 
-      <div
-        class="list-row"
-        *ngFor="let d of visible; trackBy: trackBy"
+      <div class="list-row" *ngFor="let d of visible; trackBy: trackBy"
         [class.selected]="d.selected"
-        (click)="onRowClick(d, $event)"
+        (click)="onRowClick(d,$event)"
         (dblclick)="openPreview(d)"
-        (contextmenu)="openCtx($event, d)"
-      >
-        <!-- Checkbox -->
-        <div class="lr-check" (click)="toggleSelect(d); $event.stopPropagation()">
-          <div class="check-circle" [class.checked]="d.selected">
+        (contextmenu)="openCtx($event,d)">
+
+        <div class="lr-chk" (click)="toggleSelect(d);$event.stopPropagation()">
+          <div class="chk" [class.on]="d.selected">
             <mat-icon *ngIf="d.selected">check</mat-icon>
           </div>
         </div>
 
-        <!-- Name + icon -->
         <div class="lr-name">
-          <div class="lr-icon" [style.background]="info(d).bg">
+          <div class="lr-ico" [style.background]="info(d).bg">
             <mat-icon [style.color]="info(d).color">{{ info(d).icon }}</mat-icon>
           </div>
           <span class="lr-fname" [title]="d.fileName">{{ d.fileName }}</span>
-          <mat-icon *ngIf="d.starred" class="lr-star">star</mat-icon>
+          <mat-icon *ngIf="d.starred" class="lr-star-ico">star</mat-icon>
         </div>
 
         <span class="lr-col">{{ d.uploadedAt | date: 'MMM d, y, h:mm a' }}</span>
         <span class="lr-col">{{ fmt(d.sizeBytes) }}</span>
         <span class="lr-col">{{ d.ext.toUpperCase() }}</span>
 
-        <!-- Row actions -->
         <div class="lr-actions" (click)="$event.stopPropagation()">
-          <button class="ra" (click)="openPreview(d)" matTooltip="Preview">
-            <mat-icon>visibility</mat-icon>
-          </button>
-          <a
-            class="ra"
-            [href]="d.downloadUrl"
-            target="_blank"
-            matTooltip="Download"
-            (click)="$event.stopPropagation()"
-          >
-            <mat-icon>download</mat-icon>
-          </a>
-          <button
-            class="ra"
-            [class.starred]="d.starred"
-            (click)="toggleStar(d)"
-            [matTooltip]="d.starred ? 'Unstar' : 'Star'"
-          >
+          <button class="ra" (click)="openPreview(d)" matTooltip="Preview"><mat-icon>visibility</mat-icon></button>
+          <a class="ra" [href]="d.downloadUrl" target="_blank" matTooltip="Download" (click)="$event.stopPropagation()"><mat-icon>download</mat-icon></a>
+          <button class="ra" [class.starred]="d.starred" (click)="toggleStar(d)" [matTooltip]="d.starred?'Unstar':'Star'">
             <mat-icon>{{ d.starred ? 'star' : 'star_outline' }}</mat-icon>
           </button>
-          <button
-            class="ra danger"
-            (click)="view === 'trash' ? permanentDelete(d) : trashDoc(d)"
-            [matTooltip]="view === 'trash' ? 'Delete permanently' : 'Move to Trash'"
-          >
-            <mat-icon>{{ view === 'trash' ? 'delete_forever' : 'delete_outline' }}</mat-icon>
+          <button class="ra danger" (click)="view==='trash'?permanentDelete(d):trashDoc(d)"
+            [matTooltip]="view==='trash'?'Delete forever':'Trash'">
+            <mat-icon>{{ view==='trash' ? 'delete_forever' : 'delete_outline' }}</mat-icon>
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Trash restore bar -->
-    <div class="trash-bar" *ngIf="view === 'trash' && visible.length > 0">
+    <!-- TRASH BAR -->
+    <div class="trash-bar" *ngIf="view==='trash' && visible.length>0">
       <mat-icon>info_outline</mat-icon>
       Items in Trash are deleted forever after 30 days.
       <button class="tb-restore" (click)="restoreAll()">Restore all</button>
       <button class="tb-empty" (click)="emptyTrash()">Empty Trash</button>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════
-     CONTEXT MENU
-═══════════════════════════════════════════════════════ -->
+    <!-- CONTEXT MENU -->
     <div class="ctx-menu" *ngIf="ctxDoc" [style.top.px]="ctxY" [style.left.px]="ctxX">
-      <button class="ctx-item" (click)="openPreview(ctxDoc!); closeCtx()">
+      <button class="ctx-item" (click)="openPreview(ctxDoc!);closeCtx()">
         <mat-icon>visibility</mat-icon> Preview
       </button>
       <a class="ctx-item" [href]="ctxDoc.downloadUrl" target="_blank" (click)="closeCtx()">
         <mat-icon>download</mat-icon> Download
       </a>
       <div class="ctx-sep"></div>
-      <button class="ctx-item" (click)="toggleStar(ctxDoc!); closeCtx()">
+      <button class="ctx-item" (click)="toggleStar(ctxDoc!);closeCtx()">
         <mat-icon>{{ ctxDoc.starred ? 'star_outline' : 'star' }}</mat-icon>
         {{ ctxDoc.starred ? 'Remove star' : 'Add to Starred' }}
       </button>
       <div class="ctx-sep"></div>
-      <button class="ctx-item" (click)="openRename(ctxDoc!); closeCtx()">
+      <button class="ctx-item" (click)="openRename(ctxDoc!);closeCtx()">
         <mat-icon>drive_file_rename_outline</mat-icon> Rename
       </button>
-      <button class="ctx-item" (click)="copyLink(ctxDoc!); closeCtx()">
+      <button class="ctx-item" (click)="copyLink(ctxDoc!);closeCtx()">
         <mat-icon>link</mat-icon> Copy link
       </button>
-      <div class="ctx-sep" *ngIf="view !== 'trash'"></div>
-      <button
-        class="ctx-item danger"
-        *ngIf="view !== 'trash'"
-        (click)="trashDoc(ctxDoc!); closeCtx()"
-      >
+      <div class="ctx-sep" *ngIf="view!=='trash'"></div>
+      <button class="ctx-item danger" *ngIf="view!=='trash'" (click)="trashDoc(ctxDoc!);closeCtx()">
         <mat-icon>delete_outline</mat-icon> Move to Trash
       </button>
-      <button class="ctx-item" *ngIf="view === 'trash'" (click)="restoreDoc(ctxDoc!); closeCtx()">
+      <button class="ctx-item" *ngIf="view==='trash'" (click)="restoreDoc(ctxDoc!);closeCtx()">
         <mat-icon>restore_from_trash</mat-icon> Restore
       </button>
-      <button
-        class="ctx-item danger"
-        *ngIf="view === 'trash'"
-        (click)="permanentDelete(ctxDoc!); closeCtx()"
-      >
+      <button class="ctx-item danger" *ngIf="view==='trash'" (click)="permanentDelete(ctxDoc!);closeCtx()">
         <mat-icon>delete_forever</mat-icon> Delete permanently
       </button>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════
-     PREVIEW MODAL
-═══════════════════════════════════════════════════════ -->
-    <div class="pv-overlay" *ngIf="pvDoc" (click)="closePv()">
+    <!-- PREVIEW MODAL -->
+    <div class="overlay" *ngIf="pvDoc" (click)="closePv()">
       <div class="pv-shell" (click)="$event.stopPropagation()">
-        <!-- Header -->
         <div class="pv-head">
           <div class="pv-title-block">
             <div class="pv-ficon" [style.background]="info(pvDoc).bg">
@@ -463,96 +342,53 @@ function getInfo(ext: string) {
             </div>
             <div>
               <p class="pv-fname">{{ pvDoc.fileName }}</p>
-              <p class="pv-fmeta">
-                {{ fmt(pvDoc.sizeBytes) }} · Modified {{ pvDoc.uploadedAt | date: 'MMM d, y' }}
-              </p>
+              <p class="pv-fmeta">{{ fmt(pvDoc.sizeBytes) }} · {{ pvDoc.uploadedAt | date: 'MMM d, y' }}</p>
             </div>
           </div>
-          <div class="pv-head-btns">
-            <button
-              class="pv-hb"
-              (click)="toggleStar(pvDoc)"
-              [matTooltip]="pvDoc.starred ? 'Unstar' : 'Star'"
-            >
+          <div class="pv-actions">
+            <button class="pv-btn" (click)="toggleStar(pvDoc)" [matTooltip]="pvDoc.starred?'Unstar':'Star'">
               <mat-icon>{{ pvDoc.starred ? 'star' : 'star_outline' }}</mat-icon>
             </button>
-            <a class="pv-hb" [href]="pvDoc.downloadUrl" target="_blank" matTooltip="Download">
+            <a class="pv-btn" [href]="pvDoc.downloadUrl" target="_blank" matTooltip="Download">
               <mat-icon>download</mat-icon>
             </a>
-            <button
-              class="pv-hb danger-hb"
-              (click)="trashDoc(pvDoc); closePv()"
-              matTooltip="Move to Trash"
-            >
+            <button class="pv-btn danger-btn" (click)="trashDoc(pvDoc);closePv()" matTooltip="Trash">
               <mat-icon>delete_outline</mat-icon>
             </button>
-            <button class="pv-hb close-hb" (click)="closePv()">
+            <button class="pv-btn close-btn" (click)="closePv()">
               <mat-icon>close</mat-icon>
             </button>
           </div>
         </div>
 
-        <!-- Body -->
         <div class="pv-body">
-          <!-- Image -->
           <div class="pv-img-wrap" *ngIf="isImg(pvDoc)">
-            <img
-              [src]="pvDoc.downloadUrl"
-              class="pv-img"
-              (error)="pvImgFail = true"
-              *ngIf="!pvImgFail"
-            />
-            <div class="pv-nopreview" *ngIf="pvImgFail">
-              <mat-icon class="pv-big-icon" [style.color]="info(pvDoc).color"
-                >broken_image</mat-icon
-              >
+            <img [src]="pvDoc.downloadUrl" class="pv-img" (error)="pvImgFail=true" *ngIf="!pvImgFail"/>
+            <div class="pv-nopv" *ngIf="pvImgFail">
+              <mat-icon class="pv-big-ico" [style.color]="info(pvDoc).color">broken_image</mat-icon>
               <p>Could not load image</p>
             </div>
           </div>
-
-          <!-- PDF -->
-          <iframe
-            *ngIf="isPdf(pvDoc) && pvSafeUrl"
-            [src]="pvSafeUrl"
-            class="pv-iframe"
-            frameborder="0"
-          ></iframe>
-
-          <!-- No preview -->
-          <div class="pv-nopreview" *ngIf="!isImg(pvDoc) && !isPdf(pvDoc)">
-            <div class="pv-np-icon" [style.background]="info(pvDoc).bg">
-              <mat-icon
-                style="font-size:64px;width:64px;height:64px;"
-                [style.color]="info(pvDoc).color"
-                >{{ info(pvDoc).icon }}</mat-icon
-              >
+          <iframe *ngIf="isPdf(pvDoc) && pvSafeUrl" [src]="pvSafeUrl" class="pv-iframe" frameborder="0"></iframe>
+          <div class="pv-nopv" *ngIf="!isImg(pvDoc) && !isPdf(pvDoc)">
+            <div class="pv-np-ico" [style.background]="info(pvDoc).bg">
+              <mat-icon style="font-size:64px;width:64px;height:64px;" [style.color]="info(pvDoc).color">{{ info(pvDoc).icon }}</mat-icon>
             </div>
             <p class="pv-np-title">No preview available</p>
-            <p class="pv-np-sub">.{{ pvDoc.ext }} files can't be previewed in the browser</p>
-            <a [href]="pvDoc.downloadUrl" target="_blank" class="pv-dl-cta">
+            <p class="pv-np-sub">.{{ pvDoc.ext }} files can't be previewed</p>
+            <a [href]="pvDoc.downloadUrl" target="_blank" class="pv-dl-btn">
               <mat-icon>download</mat-icon> Download to open
             </a>
           </div>
 
-          <!-- Side info panel -->
           <div class="pv-info">
             <p class="pi-head">File details</p>
-            <div class="pi-row">
-              <span class="pi-lbl">Type</span><span>{{ pvDoc.ext.toUpperCase() }}</span>
-            </div>
-            <div class="pi-row">
-              <span class="pi-lbl">Size</span><span>{{ fmt(pvDoc.sizeBytes) }}</span>
-            </div>
-            <div class="pi-row">
-              <span class="pi-lbl">Uploaded</span
-              ><span>{{ pvDoc.uploadedAt | date: 'medium' }}</span>
-            </div>
-            <div class="pi-row">
-              <span class="pi-lbl">Starred</span>
-              <span>{{ pvDoc.starred ? 'Yes' : 'No' }}</span>
-            </div>
-            <div class="pi-actions">
-              <a [href]="pvDoc.downloadUrl" target="_blank" class="pi-btn">
+            <div class="pi-row"><span class="pi-lbl">Type</span><span>{{ pvDoc.ext.toUpperCase() }}</span></div>
+            <div class="pi-row"><span class="pi-lbl">Size</span><span>{{ fmt(pvDoc.sizeBytes) }}</span></div>
+            <div class="pi-row"><span class="pi-lbl">Uploaded</span><span>{{ pvDoc.uploadedAt | date:'medium' }}</span></div>
+            <div class="pi-row"><span class="pi-lbl">Starred</span><span>{{ pvDoc.starred ? '⭐ Yes' : 'No' }}</span></div>
+            <div class="pi-btns">
+              <a [href]="pvDoc.downloadUrl" target="_blank" class="pi-btn-primary">
                 <mat-icon>download</mat-icon> Download
               </a>
               <button class="pi-btn-ghost" (click)="toggleStar(pvDoc)">
@@ -565,1252 +401,678 @@ function getInfo(ext: string) {
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════
-     RENAME MODAL
-═══════════════════════════════════════════════════════ -->
-    <div class="pv-overlay" *ngIf="renameDoc" (click)="renameDoc = null">
-      <div class="rename-box" (click)="$event.stopPropagation()">
-        <p class="rb-title">Rename</p>
-        <input
-          class="rb-input"
-          [(ngModel)]="renameName"
-          (keyup.enter)="confirmRename()"
-          autofocus
-        />
-        <div class="rb-btns">
-          <button class="rb-cancel" (click)="renameDoc = null">Cancel</button>
-          <button class="rb-ok" (click)="confirmRename()">OK</button>
+    <!-- RENAME MODAL -->
+    <div class="overlay" *ngIf="renameDoc" (click)="renameDoc=null">
+      <div class="modal-box" (click)="$event.stopPropagation()">
+        <p class="modal-title">✏️ Rename file</p>
+        <input class="modal-input" [(ngModel)]="renameName" (keyup.enter)="confirmRename()" autofocus/>
+        <div class="modal-btns">
+          <button class="btn-cancel" (click)="renameDoc=null">Cancel</button>
+          <button class="btn-ok" (click)="confirmRename()">Rename</button>
         </div>
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════
-     DELETE CONFIRM
-═══════════════════════════════════════════════════════ -->
-    <div class="pv-overlay" *ngIf="delDoc" (click)="delDoc = null">
-      <div class="del-box" (click)="$event.stopPropagation()">
-        <mat-icon class="del-ico">delete_forever</mat-icon>
-        <p class="del-title">Delete permanently?</p>
-        <p class="del-sub">
-          <strong>{{ delDoc.fileName }}</strong> will be deleted forever and cannot be recovered.
-        </p>
-        <div class="del-btns">
-          <button class="rb-cancel" (click)="delDoc = null">Cancel</button>
-          <button class="del-ok" (click)="confirmDelete()">Delete forever</button>
+    <!-- DELETE CONFIRM -->
+    <div class="overlay" *ngIf="delDoc" (click)="delDoc=null">
+      <div class="modal-box del-box" (click)="$event.stopPropagation()">
+        <div class="del-emoji">🗑️</div>
+        <p class="modal-title">Delete permanently?</p>
+        <p class="del-sub"><strong>{{ delDoc.fileName }}</strong> will be gone forever.</p>
+        <div class="modal-btns">
+          <button class="btn-cancel" (click)="delDoc=null">Cancel</button>
+          <button class="btn-danger" (click)="confirmDelete()">Delete forever</button>
         </div>
       </div>
     </div>
 
-    <!-- Toast -->
-    <div class="toast" *ngIf="toast" [class.show]="toastVisible">
+    <!-- TOAST -->
+    <div class="toast" [class.show]="toastVisible">
       <mat-icon>{{ toastIcon }}</mat-icon> {{ toast }}
     </div>
   `,
-  styles: [
-    `
-      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+  styles: [`
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
 
-      :host {
-        --blue: #0061fe;
-        --blue-soft: #ebf3ff;
-        --text: #1c1c1e;
-        --sub: #636366;
-        --border: #e5e5ea;
-        --bg: #f2f2f7;
-        --white: #ffffff;
-        --hover: #f5f5f7;
-        --selected-bg: #ebf3ff;
-        --r: 8px;
-        display: block;
-        font-family: 'Plus Jakarta Sans', sans-serif;
-        font-size: 14px;
-        color: var(--text);
-        background: var(--bg);
-        min-height: 100vh;
-        position: relative;
-      }
+    :host {
+      --teal: #2EC4B6;
+      --teal-light: #E8FAF9;
+      --coral: #FF6B6B;
+      --coral-light: #FFF0F0;
+      --text: #1A1A2E;
+      --sub: #6B7280;
+      --border: #E5E7EB;
+      --bg: #F8FAFB;
+      --white: #FFFFFF;
+      display: block;
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      min-height: 100vh;
+      position: relative;
+    }
 
-      /* ── TOOLBAR ── */
-      .toolbar {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: wrap;
-        padding: 12px 16px;
-        background: var(--white);
-        border-bottom: 1px solid var(--border);
-        position: sticky;
-        top: 0;
-        z-index: 100;
-      }
-      .toolbar-left {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        min-width: 120px;
-      }
-      .tb-icon {
-        color: var(--sub);
-        font-size: 22px;
-      }
-      .tb-title {
-        font-size: 18px;
-        font-weight: 600;
-        white-space: nowrap;
-      }
+    /* TOOLBAR */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 12px 18px;
+      background: var(--white);
+      border-bottom: 1.5px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 110px;
+    }
+    .tb-view-icon { color: var(--teal); font-size: 22px; }
+    .tb-title { font-size: 18px; font-weight: 800; white-space: nowrap; }
 
-      .search-bar {
-        flex: 1;
-        max-width: 600px;
-        min-width: 200px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        background: var(--bg);
-        border: 1.5px solid transparent;
-        border-radius: 28px;
-        padding: 8px 16px;
-        transition: all 0.2s;
-      }
-      .search-bar.focused {
-        background: var(--white);
-        border-color: var(--blue);
-        box-shadow: 0 0 0 3px rgba(0, 97, 254, 0.1);
-      }
-      .s-icon {
-        color: var(--sub);
-        font-size: 20px;
-        flex-shrink: 0;
-      }
-      .s-input {
-        flex: 1;
-        border: none;
-        outline: none;
-        background: transparent;
-        font-family: inherit;
-        font-size: 15px;
-        color: var(--text);
-      }
-      .s-input::placeholder {
-        color: #9ca3af;
-      }
-      .s-clear {
-        background: none;
-        border: none;
-        cursor: pointer;
-        padding: 0;
-        display: flex;
-        align-items: center;
-        color: var(--sub);
-        border-radius: 50%;
-        transition: background 0.12s;
-      }
-      .s-clear:hover {
-        background: var(--border);
-      }
-      .s-clear mat-icon {
-        font-size: 18px;
-      }
+    .search-wrap {
+      flex: 1;
+      max-width: 580px;
+      min-width: 180px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg);
+      border: 1.5px solid transparent;
+      border-radius: 50px;
+      padding: 8px 16px;
+      transition: all 0.2s;
+    }
+    .search-wrap.focused {
+      background: var(--white);
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(46,196,182,0.12);
+    }
+    .s-ico { color: var(--sub); font-size: 20px; flex-shrink: 0; }
+    .s-input {
+      flex: 1; border: none; outline: none;
+      background: transparent;
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px; color: var(--text);
+    }
+    .s-input::placeholder { color: #9CA3AF; }
+    .s-clear {
+      background: none; border: none; cursor: pointer;
+      display: flex; align-items: center; color: var(--sub);
+      border-radius: 50%; padding: 2px; transition: background 0.12s;
+    }
+    .s-clear:hover { background: var(--border); }
+    .s-clear mat-icon { font-size: 16px; }
 
-      .toolbar-right {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-        margin-left: auto;
-      }
+    .toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-left: auto;
+    }
+    .sel-pill {
+      font-size: 13px; font-weight: 700;
+      color: var(--teal); background: var(--teal-light);
+      padding: 4px 12px; border-radius: 20px;
+    }
+    .tb-icon-btn {
+      display: flex; align-items: center; gap: 4px;
+      background: none; border: 1.5px solid var(--border);
+      border-radius: 10px; padding: 6px 10px;
+      cursor: pointer; color: var(--sub);
+      font-family: 'Nunito', sans-serif;
+      font-size: 13px; font-weight: 600;
+      transition: all 0.15s;
+    }
+    .tb-icon-btn mat-icon { font-size: 20px; }
+    .tb-icon-btn:hover { background: var(--bg); color: var(--text); border-color: #C0C0C0; }
 
-      .sel-count {
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--blue);
-        padding: 4px 10px;
-        background: var(--blue-soft);
-        border-radius: 20px;
-      }
+    .view-toggle {
+      display: flex;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .vt-btn {
+      background: var(--white); border: none;
+      padding: 6px 10px; cursor: pointer;
+      color: var(--sub);
+      display: flex; align-items: center;
+      transition: all 0.15s;
+    }
+    .vt-btn mat-icon { font-size: 20px; }
+    .vt-btn.on { background: var(--teal-light); color: var(--teal); }
+    .vt-btn:hover:not(.on) { background: var(--bg); }
 
-      .tb-btn {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        background: none;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        padding: 6px 10px;
-        cursor: pointer;
-        color: var(--sub);
-        font-family: inherit;
-        font-size: 13px;
-        font-weight: 500;
-        transition: all 0.12s;
-      }
-      .tb-btn mat-icon {
-        font-size: 20px;
-      }
-      .tb-btn:hover {
-        background: var(--hover);
-        color: var(--text);
-        border-color: #c7c7cc;
-      }
+    .sort-wrap { position: relative; }
+    .sort-trigger { gap: 6px; }
+    .sort-trigger .arr { font-size: 18px; }
+    .sort-menu {
+      position: absolute; right: 0; top: calc(100% + 6px);
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      min-width: 180px; z-index: 200; overflow: hidden;
+      animation: fadeDown 0.15s ease;
+    }
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: none; }
+    }
+    .sm-item {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; padding: 10px 14px;
+      border: none; background: none; cursor: pointer;
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px; font-weight: 600;
+      color: var(--text); text-align: left;
+      transition: background 0.12s;
+    }
+    .sm-section {
+      font-size: 11px; font-weight: 800; color: var(--sub);
+      text-transform: uppercase; letter-spacing: 0.6px;
+      padding: 8px 14px 4px;
+    }
+    .sm-divider { height: 1px; background: var(--border); margin: 6px 0; }
+    .sm-date-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 14px;
+    }
+    .sm-date-label {
+      font-size: 12px; font-weight: 700; color: var(--sub);
+      width: 32px; flex-shrink: 0;
+    }
+    .sm-date-input {
+      flex: 1; border: 1.5px solid var(--border);
+      border-radius: 8px; padding: 5px 8px;
+      font-family: 'Nunito', sans-serif; font-size: 12px;
+      color: var(--text); outline: none; transition: border-color 0.15s;
+    }
+    .sm-date-input:focus { border-color: var(--teal); }
+    .sm-clear-date {
+      display: flex; align-items: center; gap: 4px;
+      width: calc(100% - 28px); margin: 4px 14px 8px;
+      padding: 6px 10px; border-radius: 8px;
+      border: 1.5px solid var(--coral); background: var(--coral-light);
+      color: var(--coral); cursor: pointer;
+      font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700;
+      transition: all 0.15s;
+    }
+    .sm-clear-date mat-icon { font-size: 14px; }
+    .sm-clear-date:hover { background: var(--coral); color: white; }
+    .sm-item:hover { background: var(--bg); }
+    .sm-item.on { color: var(--teal); }
+    .sm-item.on mat-icon { color: var(--teal); }
 
-      .view-toggle {
-        display: flex;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        overflow: hidden;
-      }
-      .vt-btn {
-        background: var(--white);
-        border: none;
-        padding: 6px 10px;
-        cursor: pointer;
-        color: var(--sub);
-        display: flex;
-        align-items: center;
-        transition: background 0.12s;
-      }
-      .vt-btn mat-icon {
-        font-size: 20px;
-      }
-      .vt-btn.on {
-        background: var(--blue-soft);
-        color: var(--blue);
-      }
-      .vt-btn:hover:not(.on) {
-        background: var(--hover);
-      }
+    /* CHIPS */
+    .chips-row {
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+      padding: 10px 18px;
+      background: var(--white);
+      border-bottom: 1.5px solid var(--border);
+    }
+    .chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 14px; border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: var(--white);
+      font-family: 'Nunito', sans-serif;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      color: var(--sub); transition: all 0.15s;
+    }
+    .chip:hover { background: var(--bg); color: var(--text); }
+    .chip.on { background: var(--teal-light); border-color: var(--teal); color: var(--teal); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
-      .sort-wrap {
-        position: relative;
-      }
-      .sort-trigger {
-        gap: 6px;
-      }
-      .sort-trigger .arr {
-        font-size: 18px;
-      }
-      .sort-menu {
-        position: absolute;
-        right: 0;
-        top: calc(100% + 6px);
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-        min-width: 180px;
-        z-index: 200;
-        overflow: hidden;
-        animation: fadeDown 0.15s ease;
-      }
-      @keyframes fadeDown {
-        from {
-          opacity: 0;
-          transform: translateY(-6px);
-        }
-        to {
-          opacity: 1;
-          transform: none;
-        }
-      }
-      .sm-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        width: 100%;
-        padding: 10px 14px;
-        border: none;
-        background: none;
-        cursor: pointer;
-        font-family: inherit;
-        font-size: 14px;
-        color: var(--text);
-        text-align: left;
-        transition: background 0.12s;
-      }
-      .sm-item mat-icon {
-        font-size: 18px;
-        color: var(--sub);
-      }
-      .sm-item:hover {
-        background: var(--hover);
-      }
-      .sm-item.on {
-        color: var(--blue);
-        font-weight: 600;
-      }
-      .sm-item.on mat-icon {
-        color: var(--blue);
-      }
+    /* LOADING / EMPTY */
+    .state-center {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 80px 24px; text-align: center;
+      gap: 12px;
+    }
+    .spinner-ring {
+      width: 44px; height: 44px;
+      border: 3px solid var(--border);
+      border-top-color: var(--teal);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .empty-illustration { font-size: 64px; margin-bottom: 4px; }
+    .empty-title { font-size: 18px; font-weight: 800; }
+    .empty-sub { font-size: 14px; color: var(--sub); }
+    .empty-cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--teal); color: white; text-decoration: none;
+      padding: 11px 24px; border-radius: 50px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px; font-weight: 700;
+      transition: all 0.2s;
+      box-shadow: 0 2px 10px rgba(46,196,182,0.3);
+    }
+    .empty-cta:hover { background: #25a99d; transform: translateY(-1px); }
+    .empty-cta mat-icon { font-size: 18px; }
 
-      /* ── CHIPS ── */
-      .chips-row {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        align-items: center;
-        padding: 10px 16px;
-        background: var(--white);
-        border-bottom: 1px solid var(--border);
-      }
-      .chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        padding: 5px 14px;
-        border-radius: 20px;
-        border: 1px solid var(--border);
-        background: var(--white);
-        font-family: inherit;
-        font-size: 13px;
-        cursor: pointer;
-        color: var(--sub);
-        transition: all 0.12s;
-      }
-      .chip:hover {
-        background: var(--hover);
-        color: var(--text);
-      }
-      .chip.on {
-        background: var(--blue-soft);
-        border-color: var(--blue);
-        color: var(--blue);
-        font-weight: 600;
-      }
-      .cdot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        display: inline-block;
-        flex-shrink: 0;
-      }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinning { animation: spin 0.8s linear infinite; }
 
-      /* ── LOADING / EMPTY ── */
-      .state-center {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 80px 24px;
-        text-align: center;
-      }
-      .loader {
-        width: 40px;
-        height: 40px;
-        border: 3px solid var(--border);
-        border-top-color: var(--blue);
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-        margin-bottom: 16px;
-      }
-      .empty-art {
-        width: 240px;
-        margin-bottom: 16px;
-        opacity: 0.8;
-      }
-      .empty-title {
-        font-size: 18px;
-        font-weight: 600;
-        margin-bottom: 6px;
-      }
-      .empty-sub {
-        font-size: 14px;
-        color: var(--sub);
-        margin-bottom: 16px;
-      }
-      .empty-cta {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        background: var(--blue);
-        color: #fff;
-        text-decoration: none;
-        padding: 10px 22px;
-        border-radius: 28px;
-        font-size: 14px;
-        font-weight: 600;
-        transition: background 0.15s;
-      }
-      .empty-cta:hover {
-        background: #004ed4;
-      }
-      .empty-cta mat-icon {
-        font-size: 18px;
-      }
+    /* GRID */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+      gap: 12px;
+      padding: 16px;
+    }
+    .file-card {
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: box-shadow 0.2s, border-color 0.15s, transform 0.15s;
+      position: relative;
+      user-select: none;
+    }
+    .file-card:hover {
+      box-shadow: 0 6px 24px rgba(0,0,0,0.09);
+      border-color: #C5C5C5;
+      transform: translateY(-2px);
+    }
+    .file-card.selected {
+      border-color: var(--teal);
+      background: var(--teal-light);
+    }
 
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-      .spinning {
-        animation: spin 0.8s linear infinite;
-      }
+    .card-thumb {
+      position: relative;
+      height: 138px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: #F3F4F6;
+    }
+    .thumb-img { width: 100%; height: 100%; object-fit: cover; }
+    .thumb-ico {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .thumb-ico mat-icon { font-size: 54px; width: 54px; height: 54px; }
 
-      /* ── GRID ── */
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 12px;
-        padding: 16px;
-      }
-      .card {
-        background: var(--white);
-        border: 1.5px solid var(--border);
-        border-radius: 12px;
-        overflow: hidden;
-        cursor: pointer;
-        transition:
-          box-shadow 0.2s,
-          border-color 0.15s,
-          transform 0.15s;
-        position: relative;
-        user-select: none;
-      }
-      .card:hover {
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        border-color: #c7c7cc;
-        transform: translateY(-1px);
-      }
-      .card.selected {
-        border-color: var(--blue);
-        background: var(--blue-soft);
-      }
-      .card.selected .card-thumb {
-        opacity: 0.9;
-      }
+    .card-thumb { background: #F9FAFB; }
+    .thumb-ico { background: transparent; }
+    .ext-pill {
+      position: absolute; bottom: 8px; left: 8px;
+      background: rgba(0,0,0,0.55); color: white;
+      font-size: 10px; font-weight: 800;
+      padding: 2px 8px; border-radius: 6px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
 
-      .card-thumb {
-        position: relative;
-        height: 140px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        background: #f9f9fb;
-      }
-      .thumb-img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-      }
-      .thumb-icon {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .thumb-icon mat-icon {
-        font-size: 56px;
-        width: 56px;
-        height: 56px;
-      }
-      .ext-tag {
-        position: absolute;
-        bottom: 8px;
-        left: 8px;
-        background: rgba(0, 0, 0, 0.55);
-        color: #fff;
-        font-size: 10px;
-        font-weight: 700;
-        padding: 2px 7px;
-        border-radius: 5px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
+    .sel-check {
+      position: absolute; top: 8px; left: 8px;
+      opacity: 0; transition: opacity 0.12s;
+    }
+    .sel-check.show, .file-card:hover .sel-check { opacity: 1; }
+    .chk {
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.9);
+      background: rgba(255,255,255,0.9);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.12s;
+    }
+    .chk mat-icon { font-size: 14px; color: var(--teal); }
+    .chk.on { background: var(--teal); border-color: var(--teal); }
+    .chk.on mat-icon { color: white; }
 
-      .sel-check {
-        position: absolute;
-        top: 8px;
-        left: 8px;
-        opacity: 0;
-        transition: opacity 0.12s;
-      }
-      .sel-check.show,
-      .card:hover .sel-check {
-        opacity: 1;
-      }
-      .check-circle {
-        width: 22px;
-        height: 22px;
-        border-radius: 50%;
-        border: 2px solid rgba(255, 255, 255, 0.9);
-        background: rgba(255, 255, 255, 0.9);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.12s;
-      }
-      .check-circle mat-icon {
-        font-size: 14px;
-        color: var(--blue);
-      }
-      .check-circle.checked {
-        background: var(--blue);
-        border-color: var(--blue);
-      }
-      .check-circle.checked mat-icon {
-        color: #fff;
-      }
+    .star-btn {
+      position: absolute; top: 6px; right: 6px;
+      background: rgba(255,255,255,0.85); border: none; border-radius: 50%;
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; opacity: 0; transition: opacity 0.12s;
+    }
+    .star-btn mat-icon { font-size: 16px; color: var(--sub); }
+    .star-btn.starred mat-icon { color: #F59E0B; }
+    .star-btn.starred, .file-card:hover .star-btn { opacity: 1; }
 
-      .card-star {
-        position: absolute;
-        top: 6px;
-        right: 6px;
-        background: rgba(255, 255, 255, 0.85);
-        border: none;
-        border-radius: 50%;
-        width: 28px;
-        height: 28px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        opacity: 0;
-        transition:
-          opacity 0.12s,
-          background 0.12s;
-      }
-      .card-star mat-icon {
-        font-size: 16px;
-        color: var(--sub);
-      }
-      .card-star.on mat-icon {
-        color: #f9ab00;
-      }
-      .card-star.on {
-        opacity: 1;
-      }
-      .card:hover .card-star {
-        opacity: 1;
-      }
+    .card-footer {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 12px;
+      border-top: 1px solid var(--border);
+    }
+    .cf-icon {
+      width: 28px; height: 28px; border-radius: 7px;
+      flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    }
+    .cf-icon mat-icon { font-size: 16px; }
+    .cf-text { flex: 1; min-width: 0; }
+    .cf-name {
+      font-size: 13px; font-weight: 700;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .cf-date { font-size: 11px; color: var(--sub); }
+    .cf-more {
+      background: none; border: none; cursor: pointer; border-radius: 50%;
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--sub); opacity: 0; transition: opacity 0.12s;
+    }
+    .cf-more mat-icon { font-size: 18px; }
+    .cf-more:hover { background: var(--bg); }
+    .file-card:hover .cf-more { opacity: 1; }
 
-      .card-foot {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 12px;
-        background: var(--white);
-        border-top: 1px solid var(--border);
-      }
-      .cf-icon-sm {
-        width: 28px;
-        height: 28px;
-        border-radius: 6px;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .cf-icon-sm mat-icon {
-        font-size: 16px;
-      }
-      .cf-text {
-        flex: 1;
-        min-width: 0;
-      }
-      .cf-name {
-        font-size: 13px;
-        font-weight: 500;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .cf-meta {
-        font-size: 11px;
-        color: var(--sub);
-      }
-      .cf-more {
-        background: none;
-        border: none;
-        cursor: pointer;
-        border-radius: 50%;
-        width: 28px;
-        height: 28px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--sub);
-        opacity: 0;
-        transition: opacity 0.12s;
-        flex-shrink: 0;
-      }
-      .cf-more mat-icon {
-        font-size: 18px;
-      }
-      .cf-more:hover {
-        background: var(--hover);
-      }
-      .card:hover .cf-more {
-        opacity: 1;
-      }
+    /* LIST */
+    .list-wrap {
+      background: var(--white);
+      border-radius: 16px;
+      border: 1.5px solid var(--border);
+      margin: 14px 16px;
+      overflow: hidden;
+    }
+    .list-head {
+      display: grid;
+      grid-template-columns: 36px 2fr 180px 90px 70px 140px;
+      padding: 8px 14px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+    .lh-chk { display: flex; align-items: center; }
+    .lh-col {
+      font-size: 11px; font-weight: 700; color: var(--sub);
+      text-transform: uppercase; letter-spacing: 0.5px;
+      display: flex; align-items: center; gap: 2px;
+      background: none; border: none; cursor: default;
+      font-family: 'Nunito', sans-serif;
+    }
+    .lh-col.sortable { cursor: pointer; }
+    .lh-col.sortable:hover { color: var(--text); }
+    .lh-col mat-icon { font-size: 14px; }
+    .lh-right { justify-content: flex-end; }
 
-      /* ── LIST ── */
-      .list-wrap {
-        background: var(--white);
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        margin: 14px 16px;
-        overflow: hidden;
-      }
-      .list-head {
-        display: grid;
-        grid-template-columns: 36px 2fr 180px 90px 70px 140px;
-        padding: 8px 12px;
-        background: var(--bg);
-        border-bottom: 1px solid var(--border);
-      }
-      .lh-check {
-        display: flex;
-        align-items: center;
-      }
-      .lh-col {
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--sub);
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-        display: flex;
-        align-items: center;
-        gap: 2px;
-        background: none;
-        border: none;
-        cursor: default;
-        font-family: inherit;
-      }
-      .lh-col.sortable {
-        cursor: pointer;
-      }
-      .lh-col.sortable:hover {
-        color: var(--text);
-      }
-      .lh-col mat-icon {
-        font-size: 14px;
-      }
-      .lh-act {
-        justify-content: flex-end;
-      }
+    .list-row {
+      display: grid;
+      grid-template-columns: 36px 2fr 180px 90px 70px 140px;
+      padding: 10px 14px; align-items: center;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background 0.12s; user-select: none;
+    }
+    .list-row:last-child { border-bottom: none; }
+    .list-row:hover { background: #FAFAFA; }
+    .list-row.selected { background: var(--teal-light); }
 
-      .list-row {
-        display: grid;
-        grid-template-columns: 36px 2fr 180px 90px 70px 140px;
-        padding: 10px 12px;
-        align-items: center;
-        border-bottom: 1px solid var(--border);
-        cursor: pointer;
-        transition: background 0.12s;
-        user-select: none;
-      }
-      .list-row:last-child {
-        border-bottom: none;
-      }
-      .list-row:hover {
-        background: var(--hover);
-      }
-      .list-row.selected {
-        background: var(--blue-soft);
-      }
-      .lr-check {
-        display: flex;
-        align-items: center;
-      }
+    .lr-chk { display: flex; align-items: center; }
+    .lr-name { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .lr-ico {
+      width: 34px; height: 34px; border-radius: 9px;
+      flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    }
+    .lr-ico mat-icon { font-size: 20px; }
+    .lr-fname {
+      font-size: 14px; font-weight: 700;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .lr-star-ico { font-size: 14px; color: #F59E0B; flex-shrink: 0; }
+    .lr-col { font-size: 13px; color: var(--sub); font-weight: 500; }
+    .lr-actions {
+      display: flex; gap: 4px; justify-content: flex-end;
+      opacity: 0; transition: opacity 0.12s;
+    }
+    .list-row:hover .lr-actions { opacity: 1; }
+    .ra {
+      background: none; border: none; cursor: pointer;
+      border-radius: 8px; width: 30px; height: 30px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--sub); text-decoration: none; transition: all 0.12s;
+    }
+    .ra mat-icon { font-size: 17px; }
+    .ra:hover { background: var(--bg); color: var(--text); }
+    .ra.starred mat-icon { color: #F59E0B; }
+    .ra.danger:hover { background: var(--coral-light); color: var(--coral); }
 
-      .lr-name {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        min-width: 0;
-      }
-      .lr-icon {
-        width: 34px;
-        height: 34px;
-        border-radius: 8px;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .lr-icon mat-icon {
-        font-size: 20px;
-      }
-      .lr-fname {
-        font-size: 14px;
-        font-weight: 500;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .lr-star {
-        font-size: 14px;
-        color: #f9ab00;
-        flex-shrink: 0;
-      }
-      .lr-col {
-        font-size: 13px;
-        color: var(--sub);
-      }
-      .lr-actions {
-        display: flex;
-        gap: 4px;
-        justify-content: flex-end;
-        opacity: 0;
-        transition: opacity 0.12s;
-      }
-      .list-row:hover .lr-actions {
-        opacity: 1;
-      }
-      .ra {
-        background: none;
-        border: none;
-        cursor: pointer;
-        border-radius: 6px;
-        width: 30px;
-        height: 30px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--sub);
-        text-decoration: none;
-        transition: all 0.12s;
-      }
-      .ra mat-icon {
-        font-size: 17px;
-      }
-      .ra:hover {
-        background: #e5e5ea;
-        color: var(--text);
-      }
-      .ra.starred mat-icon {
-        color: #f9ab00;
-      }
-      .ra.danger:hover {
-        background: #fde8e6;
-        color: #d93025;
-      }
+    /* TRASH BAR */
+    .trash-bar {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 18px;
+      background: #FFFBEB; border-top: 1px solid #F59E0B;
+      font-size: 13px; color: #92400E;
+      position: sticky; bottom: 0; z-index: 50;
+    }
+    .trash-bar mat-icon { font-size: 18px; }
+    .tb-restore {
+      margin-left: auto; background: none;
+      border: 1.5px solid #F59E0B; padding: 5px 14px;
+      border-radius: 20px; cursor: pointer;
+      font-family: 'Nunito', sans-serif; font-size: 13px;
+      font-weight: 700; color: #92400E; transition: background 0.12s;
+    }
+    .tb-restore:hover { background: rgba(245,158,11,0.1); }
+    .tb-empty {
+      background: var(--coral); border: none; color: white;
+      padding: 5px 14px; border-radius: 20px; cursor: pointer;
+      font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700;
+      transition: background 0.12s;
+    }
+    .tb-empty:hover { background: #E55555; }
 
-      /* ── TRASH BAR ── */
-      .trash-bar {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 12px 16px;
-        background: #fef7e0;
-        border-top: 1px solid #f9ab00;
-        font-size: 13px;
-        color: #7b4f00;
-        position: sticky;
-        bottom: 0;
-        z-index: 50;
-      }
-      .trash-bar mat-icon {
-        font-size: 18px;
-      }
-      .tb-restore {
-        margin-left: auto;
-        background: none;
-        border: 1px solid #f9ab00;
-        padding: 5px 14px;
-        border-radius: 20px;
-        cursor: pointer;
-        font-family: inherit;
-        font-size: 13px;
-        color: #7b4f00;
-        font-weight: 500;
-        transition: background 0.12s;
-      }
-      .tb-restore:hover {
-        background: rgba(249, 171, 0, 0.15);
-      }
-      .tb-empty {
-        background: #d93025;
-        border: none;
-        color: #fff;
-        padding: 5px 14px;
-        border-radius: 20px;
-        cursor: pointer;
-        font-family: inherit;
-        font-size: 13px;
-        font-weight: 500;
-        transition: background 0.12s;
-      }
-      .tb-empty:hover {
-        background: #b31412;
-      }
+    /* CONTEXT MENU */
+    .ctx-menu {
+      position: fixed;
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 10px 32px rgba(0,0,0,0.12);
+      z-index: 5000; min-width: 200px; overflow: hidden;
+      animation: fadeDown 0.12s ease;
+    }
+    .ctx-item {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; padding: 10px 14px;
+      border: none; background: none; cursor: pointer;
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px; font-weight: 600;
+      color: var(--text); text-align: left; text-decoration: none;
+      transition: background 0.12s;
+    }
+    .ctx-item mat-icon { font-size: 18px; color: var(--sub); }
+    .ctx-item:hover { background: var(--bg); }
+    .ctx-item.danger { color: var(--coral); }
+    .ctx-item.danger mat-icon { color: var(--coral); }
+    .ctx-sep { height: 1px; background: var(--border); }
 
-      /* ── CONTEXT MENU ── */
-      .ctx-menu {
-        position: fixed;
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-        z-index: 5000;
-        min-width: 200px;
-        overflow: hidden;
-        animation: fadeDown 0.12s ease;
-      }
-      .ctx-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        width: 100%;
-        padding: 10px 14px;
-        border: none;
-        background: none;
-        cursor: pointer;
-        font-family: inherit;
-        font-size: 14px;
-        color: var(--text);
-        text-align: left;
-        text-decoration: none;
-        transition: background 0.12s;
-      }
-      .ctx-item mat-icon {
-        font-size: 18px;
-        color: var(--sub);
-      }
-      .ctx-item:hover {
-        background: var(--hover);
-      }
-      .ctx-item.danger {
-        color: #d93025;
-      }
-      .ctx-item.danger mat-icon {
-        color: #d93025;
-      }
-      .ctx-sep {
-        height: 1px;
-        background: var(--border);
-      }
+    /* OVERLAY & MODALS */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 3000;
+      backdrop-filter: blur(4px);
+      animation: fadein 0.18s;
+    }
+    @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
 
-      /* ── PREVIEW OVERLAY ── */
-      .pv-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.7);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 3000;
-        backdrop-filter: blur(4px);
-        animation: fadein 0.18s;
-      }
-      @keyframes fadein {
-        from {
-          opacity: 0;
-        }
-        to {
-          opacity: 1;
-        }
-      }
+    .pv-shell {
+      background: var(--white);
+      border-radius: 20px;
+      width: min(1100px, 97vw);
+      height: min(90vh, 780px);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 40px 80px rgba(0,0,0,0.25);
+      animation: scaleIn 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes scaleIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
 
-      .pv-shell {
-        background: var(--white);
-        border-radius: 16px;
-        width: min(1100px, 97vw);
-        height: min(90vh, 780px);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        box-shadow: 0 40px 80px rgba(0, 0, 0, 0.3);
-        animation: scaleIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-      }
-      @keyframes scaleIn {
-        from {
-          transform: scale(0.95);
-          opacity: 0;
-        }
-        to {
-          transform: scale(1);
-          opacity: 1;
-        }
-      }
+    .pv-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; border-bottom: 1px solid var(--border);
+      gap: 12px; flex-shrink: 0;
+    }
+    .pv-title-block { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .pv-ficon {
+      width: 44px; height: 44px; border-radius: 12px;
+      flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    }
+    .pv-ficon mat-icon { font-size: 26px; }
+    .pv-fname {
+      font-size: 16px; font-weight: 800;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .pv-fmeta { font-size: 12px; color: var(--sub); margin-top: 2px; }
+    .pv-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .pv-btn {
+      background: none; border: 1.5px solid var(--border);
+      border-radius: 10px; width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--sub); text-decoration: none;
+      transition: all 0.12s;
+    }
+    .pv-btn mat-icon { font-size: 20px; }
+    .pv-btn:hover { background: var(--bg); color: var(--text); }
+    .pv-btn.danger-btn:hover { background: var(--coral-light); color: var(--coral); border-color: var(--coral); }
+    .pv-btn.close-btn { border-radius: 50%; }
 
-      .pv-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 14px 18px;
-        border-bottom: 1px solid var(--border);
-        gap: 12px;
-        flex-shrink: 0;
-      }
-      .pv-title-block {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        min-width: 0;
-      }
-      .pv-ficon {
-        width: 44px;
-        height: 44px;
-        border-radius: 10px;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .pv-ficon mat-icon {
-        font-size: 26px;
-      }
-      .pv-fname {
-        font-size: 16px;
-        font-weight: 600;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .pv-fmeta {
-        font-size: 12px;
-        color: var(--sub);
-        margin-top: 2px;
-      }
-      .pv-head-btns {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        flex-shrink: 0;
-      }
-      .pv-hb {
-        background: none;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        width: 36px;
-        height: 36px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        color: var(--sub);
-        text-decoration: none;
-        transition: all 0.12s;
-      }
-      .pv-hb mat-icon {
-        font-size: 20px;
-      }
-      .pv-hb:hover {
-        background: var(--hover);
-        color: var(--text);
-        border-color: #c7c7cc;
-      }
-      .pv-hb.danger-hb:hover {
-        background: #fde8e6;
-        color: #d93025;
-        border-color: #d93025;
-      }
-      .pv-hb.close-hb {
-        border-radius: 50%;
-      }
+    .pv-body { flex: 1; display: flex; overflow: hidden; }
+    .pv-img-wrap {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      overflow: hidden; background: #111; padding: 16px;
+    }
+    .pv-img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; }
+    .pv-iframe { flex: 1; height: 100%; border: none; }
+    .pv-nopv {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 12px; padding: 32px;
+    }
+    .pv-big-ico { font-size: 52px; }
+    .pv-np-ico {
+      width: 110px; height: 110px; border-radius: 24px;
+      display: flex; align-items: center; justify-content: center; margin-bottom: 8px;
+    }
+    .pv-np-title { font-size: 18px; font-weight: 800; }
+    .pv-np-sub { font-size: 14px; color: var(--sub); }
+    .pv-dl-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--teal); color: white; text-decoration: none;
+      padding: 10px 22px; border-radius: 50px;
+      font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 700;
+      margin-top: 8px; transition: background 0.15s;
+    }
+    .pv-dl-btn:hover { background: #25a99d; }
+    .pv-dl-btn mat-icon { font-size: 18px; }
 
-      .pv-body {
-        flex: 1;
-        display: flex;
-        overflow: hidden;
-      }
+    .pv-info {
+      width: 240px; flex-shrink: 0;
+      border-left: 1px solid var(--border);
+      padding: 20px 16px; overflow-y: auto;
+    }
+    .pi-head {
+      font-size: 12px; font-weight: 800; margin-bottom: 14px;
+      text-transform: uppercase; letter-spacing: 0.6px; color: var(--sub);
+    }
+    .pi-row {
+      display: flex; justify-content: space-between;
+      align-items: flex-start;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .pi-row:last-of-type { border-bottom: none; }
+    .pi-lbl { color: var(--sub); flex-shrink: 0; margin-right: 8px; font-weight: 600; }
+    .pi-btns { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+    .pi-btn-primary {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      background: var(--teal); color: white; text-decoration: none;
+      padding: 9px 0; border-radius: 10px;
+      font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 700;
+      transition: background 0.15s;
+    }
+    .pi-btn-primary:hover { background: #25a99d; }
+    .pi-btn-primary mat-icon { font-size: 17px; }
+    .pi-btn-ghost {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      background: none; border: 1.5px solid var(--border);
+      color: var(--text); padding: 9px 0; border-radius: 10px;
+      font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: all 0.12s;
+    }
+    .pi-btn-ghost:hover { background: var(--bg); }
+    .pi-btn-ghost mat-icon { font-size: 17px; color: #F59E0B; }
 
-      .pv-img-wrap {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        background: #0f0f0f;
-        padding: 16px;
-      }
-      .pv-img {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain;
-        border-radius: 6px;
-      }
-      .pv-iframe {
-        flex: 1;
-        height: 100%;
-        border: none;
-      }
+    /* MODALS */
+    .modal-box {
+      background: var(--white); border-radius: 20px;
+      padding: 28px 32px; width: 380px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+      animation: scaleIn 0.18s ease;
+    }
+    .del-box { text-align: center; width: 400px; }
+    .del-emoji { font-size: 48px; margin-bottom: 12px; }
+    .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 14px; }
+    .del-sub { font-size: 14px; color: var(--sub); line-height: 1.5; }
+    .modal-input {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: 10px; padding: 10px 12px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 15px; font-weight: 600; outline: none;
+      transition: border-color 0.15s; color: var(--text);
+    }
+    .modal-input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(46,196,182,0.12); }
+    .modal-btns {
+      display: flex; justify-content: flex-end;
+      gap: 8px; margin-top: 18px;
+    }
+    .del-box .modal-btns { justify-content: center; }
+    .btn-cancel {
+      padding: 9px 20px; border-radius: 10px;
+      border: 1.5px solid var(--border); background: none;
+      cursor: pointer; font-family: 'Nunito', sans-serif;
+      font-size: 14px; font-weight: 700; color: var(--text);
+      transition: background 0.12s;
+    }
+    .btn-cancel:hover { background: var(--bg); }
+    .btn-ok {
+      padding: 9px 20px; border-radius: 10px; border: none;
+      background: var(--teal); color: white; cursor: pointer;
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px; font-weight: 700; transition: background 0.12s;
+    }
+    .btn-ok:hover { background: #25a99d; }
+    .btn-danger {
+      padding: 9px 20px; border-radius: 10px; border: none;
+      background: var(--coral); color: white; cursor: pointer;
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px; font-weight: 700; transition: background 0.12s;
+    }
+    .btn-danger:hover { background: #E55555; }
 
-      .pv-nopreview {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 12px;
-        padding: 32px;
-      }
-      .pv-np-icon {
-        width: 110px;
-        height: 110px;
-        border-radius: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 8px;
-      }
-      .pv-np-title {
-        font-size: 18px;
-        font-weight: 600;
-      }
-      .pv-np-sub {
-        font-size: 14px;
-        color: var(--sub);
-      }
-      .pv-dl-cta {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        background: var(--blue);
-        color: #fff;
-        text-decoration: none;
-        padding: 10px 22px;
-        border-radius: 28px;
-        font-size: 14px;
-        font-weight: 600;
-        margin-top: 8px;
-        transition: background 0.15s;
-      }
-      .pv-dl-cta:hover {
-        background: #004ed4;
-      }
-      .pv-dl-cta mat-icon {
-        font-size: 18px;
-      }
-
-      .pv-info {
-        width: 240px;
-        flex-shrink: 0;
-        border-left: 1px solid var(--border);
-        padding: 20px 16px;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 0;
-      }
-      .pi-head {
-        font-size: 13px;
-        font-weight: 700;
-        margin-bottom: 14px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: var(--sub);
-      }
-      .pi-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        padding: 8px 0;
-        border-bottom: 1px solid var(--border);
-        font-size: 13px;
-      }
-      .pi-row:last-of-type {
-        border-bottom: none;
-      }
-      .pi-lbl {
-        color: var(--sub);
-        flex-shrink: 0;
-        margin-right: 8px;
-      }
-      .pi-actions {
-        margin-top: 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .pi-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        background: var(--blue);
-        color: #fff;
-        text-decoration: none;
-        padding: 9px 0;
-        border-radius: 8px;
-        font-size: 14px;
-        font-weight: 600;
-        transition: background 0.15s;
-      }
-      .pi-btn:hover {
-        background: #004ed4;
-      }
-      .pi-btn mat-icon {
-        font-size: 17px;
-      }
-      .pi-btn-ghost {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        background: none;
-        border: 1px solid var(--border);
-        color: var(--text);
-        padding: 9px 0;
-        border-radius: 8px;
-        font-size: 14px;
-        font-weight: 500;
-        cursor: pointer;
-        font-family: inherit;
-        transition: all 0.12s;
-      }
-      .pi-btn-ghost:hover {
-        background: var(--hover);
-        border-color: #c7c7cc;
-      }
-      .pi-btn-ghost mat-icon {
-        font-size: 17px;
-        color: #f9ab00;
-      }
-
-      /* ── RENAME ── */
-      .rename-box {
-        background: var(--white);
-        border-radius: 14px;
-        padding: 24px 28px;
-        width: 380px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-        animation: scaleIn 0.18s ease;
-      }
-      .rb-title {
-        font-size: 17px;
-        font-weight: 600;
-        margin-bottom: 14px;
-      }
-      .rb-input {
-        width: 100%;
-        border: 1.5px solid var(--border);
-        border-radius: 8px;
-        padding: 10px 12px;
-        font-family: inherit;
-        font-size: 15px;
-        outline: none;
-        transition: border-color 0.15s;
-      }
-      .rb-input:focus {
-        border-color: var(--blue);
-        box-shadow: 0 0 0 3px rgba(0, 97, 254, 0.1);
-      }
-      .rb-btns {
-        display: flex;
-        justify-content: flex-end;
-        gap: 8px;
-        margin-top: 16px;
-      }
-      .rb-cancel {
-        padding: 8px 18px;
-        border-radius: 8px;
-        border: 1px solid var(--border);
-        background: none;
-        cursor: pointer;
-        font-family: inherit;
-        font-size: 14px;
-        font-weight: 500;
-        color: var(--text);
-        transition: background 0.12s;
-      }
-      .rb-cancel:hover {
-        background: var(--hover);
-      }
-      .rb-ok {
-        padding: 8px 18px;
-        border-radius: 8px;
-        border: none;
-        background: var(--blue);
-        color: #fff;
-        cursor: pointer;
-        font-family: inherit;
-        font-size: 14px;
-        font-weight: 600;
-        transition: background 0.12s;
-      }
-      .rb-ok:hover {
-        background: #004ed4;
-      }
-
-      /* ── DELETE CONFIRM ── */
-      .del-box {
-        background: var(--white);
-        border-radius: 14px;
-        padding: 28px 32px;
-        width: 400px;
-        text-align: center;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-        animation: scaleIn 0.18s ease;
-      }
-      .del-ico {
-        font-size: 52px;
-        color: #d93025;
-        display: block;
-        margin-bottom: 10px;
-      }
-      .del-title {
-        font-size: 18px;
-        font-weight: 600;
-        margin-bottom: 8px;
-      }
-      .del-sub {
-        font-size: 14px;
-        color: var(--sub);
-        line-height: 1.5;
-      }
-      .del-btns {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-        margin-top: 20px;
-      }
-      .del-ok {
-        padding: 9px 22px;
-        border-radius: 8px;
-        border: none;
-        background: #d93025;
-        color: #fff;
-        cursor: pointer;
-        font-family: inherit;
-        font-size: 14px;
-        font-weight: 600;
-        transition: background 0.12s;
-      }
-      .del-ok:hover {
-        background: #b31412;
-      }
-
-      /* ── TOAST ── */
-      .toast {
-        position: fixed;
-        bottom: 24px;
-        left: 50%;
-        transform: translateX(-50%) translateY(80px);
-        background: #3c3c3e;
-        color: #fff;
-        padding: 10px 20px;
-        border-radius: 28px;
-        font-size: 14px;
-        font-weight: 500;
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        transition:
-          transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
-          opacity 0.3s;
-        opacity: 0;
-      }
-      .toast.show {
-        transform: translateX(-50%) translateY(0);
-        opacity: 1;
-      }
-      .toast mat-icon {
-        font-size: 18px;
-      }
-    `,
-  ],
+    /* TOAST */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1A1A2E; color: white;
+      padding: 12px 22px; border-radius: 50px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px; font-weight: 700;
+      z-index: 9999; display: flex; align-items: center; gap: 8px;
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s;
+      opacity: 0;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast mat-icon { font-size: 18px; }
+  `]
 })
 export class DocumentListComponent implements OnInit, OnDestroy {
   rows: DocRow[] = [];
   visible: DocRow[] = [];
-
   view: View = 'my-files';
   mode: Mode = 'grid';
   query = '';
@@ -1820,73 +1082,48 @@ export class DocumentListComponent implements OnInit, OnDestroy {
   typeFilter = 'all';
   sortOpen = false;
   loading = false;
+  dateFrom = '';
+  dateTo = '';
 
   ctxDoc: DocRow | null = null;
-  ctxX = 0;
-  ctxY = 0;
-
+  ctxX = 0; ctxY = 0;
   pvDoc: DocRow | null = null;
   pvSafeUrl: SafeResourceUrl | null = null;
   pvImgFail = false;
-
   renameDoc: DocRow | null = null;
   renameName = '';
-
   delDoc: DocRow | null = null;
-
-  toast = '';
-  toastIcon = 'check';
-  toastVisible = false;
+  toast = ''; toastIcon = 'check'; toastVisible = false;
   private toastTimer: any;
-
   private refreshTimer: any;
   private searchTimer: any;
 
   readonly sortOptions = [
-    { key: 'name' as SortKey, label: 'Name' },
+    { key: 'name' as SortKey, label: 'Name (A → Z)' },
     { key: 'modified' as SortKey, label: 'Last modified' },
+    { key: 'date-asc' as SortKey, label: 'Date (oldest first)' },
+    { key: 'date-desc' as SortKey, label: 'Date (newest first)' },
     { key: 'size' as SortKey, label: 'File size' },
     { key: 'type' as SortKey, label: 'Type' },
   ];
 
-  get sortLabel() {
-    return this.sortOptions.find((s) => s.key === this.sortKey)?.label ?? 'Sort';
-  }
-  get selectedCount() {
-    return this.visible.filter((d) => d.selected).length;
-  }
-  get allSelected() {
-    return this.visible.length > 0 && this.visible.every((d) => d.selected);
-  }
-
+  get sortLabel() { return this.sortOptions.find(s => s.key === this.sortKey)?.label ?? 'Sort'; }
+  get selectedCount() { return this.visible.filter(d => d.selected).length; }
+  get allSelected() { return this.visible.length > 0 && this.visible.every(d => d.selected); }
   get viewTitle() {
-    return this.view === 'starred'
-      ? 'Starred'
-      : this.view === 'recent'
-        ? 'Recent'
-        : this.view === 'trash'
-          ? 'Trash'
-          : 'My Files';
+    return this.view === 'starred' ? 'Starred' : this.view === 'recent' ? 'Recent'
+      : this.view === 'trash' ? 'Trash' : 'My Files';
   }
   get viewIcon() {
-    return this.view === 'starred'
-      ? 'star_outline'
-      : this.view === 'recent'
-        ? 'access_time'
-        : this.view === 'trash'
-          ? 'delete_outline'
-          : 'folder';
+    return this.view === 'starred' ? 'star_outline' : this.view === 'recent' ? 'access_time'
+      : this.view === 'trash' ? 'delete_outline' : 'folder_open';
   }
 
-  constructor(
-    private svc: DocumentService,
-    private cdr: ChangeDetectorRef,
-    private sanitizer: DomSanitizer,
-    private route: ActivatedRoute,
-  ) {}
+  constructor(private svc: DocumentService, public cdr: ChangeDetectorRef,
+    private sanitizer: DomSanitizer, private route: ActivatedRoute) {}
 
   ngOnInit() {
-    this.route.url.subscribe((segs) => {
+    this.route.url.subscribe(segs => {
       const path = segs[0]?.path ?? 'documents';
       if (path === 'starred') this.view = 'starred';
       else if (path === 'recent') this.view = 'recent';
@@ -1894,297 +1131,225 @@ export class DocumentListComponent implements OnInit, OnDestroy {
       else this.view = 'my-files';
       this.applyAll();
     });
+    this.route.queryParams.subscribe(params => {
+      if (params['type']) {
+        this.typeFilter = params['type'];
+        this.cdr.markForCheck();
+      }
+    });
     this.load();
-    this.refreshTimer = setInterval(() => {
-      if (!this.query.trim() && !this.pvDoc) this.load();
-    }, 8000);
+    this.refreshTimer = setInterval(() => { if (!this.query.trim() && !this.pvDoc) this.load(); }, 8000);
   }
 
   ngOnDestroy() {
-    clearInterval(this.refreshTimer);
-    clearTimeout(this.searchTimer);
-    clearTimeout(this.toastTimer);
+    clearInterval(this.refreshTimer); clearTimeout(this.searchTimer); clearTimeout(this.toastTimer);
   }
 
   load() {
-    this.loading = true;
-    this.cdr.markForCheck();
+    this.loading = true; this.cdr.markForCheck();
     this.svc.list().subscribe({
       next: (docs) => {
-        const stateMap = new Map(
-          this.rows.map((r) => [
-            r.fileName,
-            { starred: r.starred, trashed: r.trashed, trashedAt: r.trashedAt, selected: false },
-          ]),
-        );
-        this.rows = docs.map((d) => {
+        const persisted = this.loadPersistedState();
+        // Keep in-memory state so recent star/unstar actions aren't overwritten by refresh
+        const inMemory = new Map(this.rows.map(r => [r.fileName, r]));
+        this.rows = docs.map(d => {
           const ext = this.getExt(d.fileName);
-          const prev = stateMap.get(d.fileName);
+          const mem = inMemory.get(d.fileName);
+          const saved = persisted[d.fileName];
+          // Priority: in-memory (most recent user action) > localStorage > default false
           return {
-            ...d,
-            ext,
+            ...d, ext,
             typeKey: getInfo(ext).key,
-            starred: prev?.starred ?? false,
-            trashed: prev?.trashed ?? false,
-            trashedAt: prev?.trashedAt ?? null,
-            selected: false,
+            starred: mem ? mem.starred : (saved?.starred ?? false),
+            trashed: mem ? mem.trashed : (saved?.trashed ?? false),
+            trashedAt: mem ? mem.trashedAt : (saved?.trashedAt ? new Date(saved.trashedAt) : null),
+            selected: false
           } as DocRow;
         });
-        this.loading = false;
-        this.applyAll();
-        this.cdr.markForCheck();
+        this.loading = false; this.applyAll(); this.cdr.markForCheck();
       },
-      error: (e) => {
-        console.error(e);
-        this.loading = false;
-        this.cdr.markForCheck();
-      },
+      error: () => { this.loading = false; this.cdr.markForCheck(); }
     });
   }
 
   onQueryChange() {
+    this.applyAll();
     clearTimeout(this.searchTimer);
-    if (!this.query.trim()) {
-      this.applyAll();
-      return;
-    }
+    if (!this.query.trim()) return;
     this.searchTimer = setTimeout(() => {
       this.svc.search(this.query).subscribe({
         next: (docs) => {
-          const sm = new Map(this.rows.map((r) => [r.fileName, r]));
-          const merged: DocRow[] = docs.map((d) => {
+          const sm = new Map(this.rows.map(r => [r.fileName, r]));
+          const merged: DocRow[] = docs.map(d => {
             const ext = this.getExt(d.fileName);
             const prev = sm.get(d.fileName);
-            return (
-              prev ??
-              ({
-                ...d,
-                ext,
-                typeKey: getInfo(ext).key,
-                starred: false,
-                trashed: false,
-                trashedAt: null,
-                selected: false,
-              } as DocRow)
-            );
+            return prev ?? ({ ...d, ext, typeKey: getInfo(ext).key, starred: false, trashed: false, trashedAt: null, selected: false } as DocRow);
           });
-          this.visible = this.applyFiltersAndSort(merged.filter((d) => !d.trashed));
+          this.visible = this.applyFiltersAndSort(merged.filter(d => !d.trashed));
           this.cdr.markForCheck();
         },
-        error: () => this.applyAll(),
+        error: () => this.applyAll()
       });
-    }, 280);
+    }, 150);
   }
 
-  clearSearch() {
-    this.query = '';
-    this.applyAll();
-  }
-
-  setType(t: string) {
-    this.typeFilter = t;
-    this.applyAll();
-  }
+  clearSearch() { this.query = ''; this.applyAll(); }
+  setType(t: string) { this.typeFilter = t; this.applyAll(); }
   setSort(k: SortKey) {
     if (this.sortKey === k) this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
-    else {
-      this.sortKey = k;
-      this.sortDir = 'asc';
-    }
-    this.sortOpen = false;
-    this.applyAll();
+    else { this.sortKey = k; this.sortDir = 'asc'; }
+    this.sortOpen = false; this.applyAll();
   }
 
   applyAll() {
     let pool = [...this.rows];
-    if (this.view === 'starred') pool = pool.filter((d) => d.starred && !d.trashed);
-    else if (this.view === 'recent') pool = pool.filter((d) => !d.trashed).slice(0, 20);
-    else if (this.view === 'trash') pool = pool.filter((d) => d.trashed);
-    else pool = pool.filter((d) => !d.trashed);
-
-    if (this.query.trim()) {
-      const q = this.query.toLowerCase();
-      pool = pool.filter((d) => d.fileName.toLowerCase().includes(q));
-    }
-
+    if (this.view === 'starred') pool = pool.filter(d => d.starred && !d.trashed);
+    else if (this.view === 'recent') pool = pool.filter(d => !d.trashed).slice(0, 20);
+    else if (this.view === 'trash') pool = pool.filter(d => d.trashed);
+    else pool = pool.filter(d => !d.trashed);
+    if (this.query.trim()) { const q = this.query.toLowerCase(); pool = pool.filter(d => d.fileName.toLowerCase().includes(q)); }
     this.visible = this.applyFiltersAndSort(pool);
     this.cdr.markForCheck();
   }
 
+  clearDateFilter() { this.dateFrom = ''; this.dateTo = ''; this.applyAll(); }
+
   applyFiltersAndSort(pool: DocRow[]): DocRow[] {
-    if (this.typeFilter !== 'all') {
-      pool = pool.filter((d) => d.typeKey === this.typeFilter);
+    if (this.typeFilter !== 'all') pool = pool.filter(d => d.typeKey === this.typeFilter);
+    if (this.dateFrom) {
+      const from = new Date(this.dateFrom).getTime();
+      pool = pool.filter(d => new Date(d.uploadedAt).getTime() >= from);
+    }
+    if (this.dateTo) {
+      const to = new Date(this.dateTo);
+      to.setHours(23, 59, 59, 999);
+      pool = pool.filter(d => new Date(d.uploadedAt).getTime() <= to.getTime());
     }
     return pool.sort((a, b) => {
       let va: string | number, vb: string | number;
       switch (this.sortKey) {
-        case 'name':
-          va = a.fileName.toLowerCase();
-          vb = b.fileName.toLowerCase();
-          break;
-        case 'modified':
-          va = new Date(a.uploadedAt).getTime();
-          vb = new Date(b.uploadedAt).getTime();
-          break;
-        case 'size':
-          va = a.sizeBytes;
-          vb = b.sizeBytes;
-          break;
-        case 'type':
-          va = a.ext;
-          vb = b.ext;
-          break;
-        default:
-          va = vb = 0;
+        case 'name': va = a.fileName.toLowerCase(); vb = b.fileName.toLowerCase(); break;
+        case 'modified': va = new Date(a.uploadedAt).getTime(); vb = new Date(b.uploadedAt).getTime(); break;
+        case 'date-asc': return new Date(a.uploadedAt).getTime() - new Date(b.uploadedAt).getTime();
+        case 'date-desc': return new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime();
+        case 'size': va = a.sizeBytes; vb = b.sizeBytes; break;
+        case 'type': va = a.ext; vb = b.ext; break;
+        default: va = vb = 0;
       }
       return (va < vb ? -1 : va > vb ? 1 : 0) * (this.sortDir === 'asc' ? 1 : -1);
     });
   }
 
-  toggleSelect(d: DocRow) {
-    d.selected = !d.selected;
-    this.cdr.markForCheck();
-  }
-  clearSelection() {
-    this.rows.forEach((r) => (r.selected = false));
-    this.applyAll();
-  }
-  toggleAll() {
-    const all = this.allSelected;
-    this.visible.forEach((d) => (d.selected = !all));
-    this.cdr.markForCheck();
+  private readonly STORAGE_KEY = 'docvault_file_state';
+
+  private loadPersistedState(): Record<string, { starred: boolean; trashed: boolean; trashedAt: string | null }> {
+    try { return JSON.parse(localStorage.getItem(this.STORAGE_KEY) ?? '{}'); } catch { return {}; }
   }
 
-  onCardClick(d: DocRow, e: MouseEvent) {
-    if (e.ctrlKey || e.metaKey) {
-      this.toggleSelect(d);
-    } else if (e.shiftKey && this.selectedCount > 0) {
-      const idxA = this.visible.findIndex((r) => r.selected);
-      const idxB = this.visible.indexOf(d);
-      const lo = Math.min(idxA, idxB),
-        hi = Math.max(idxA, idxB);
-      this.visible.forEach((r, i) => {
-        if (i >= lo && i <= hi) r.selected = true;
-      });
-      this.cdr.markForCheck();
-    } else {
-      this.clearSelection();
-      this.toggleSelect(d);
+  private savePersistedState() {
+    const state: Record<string, { starred: boolean; trashed: boolean; trashedAt: string | null }> = {};
+    // Save ALL files explicitly — so unstar/untrash is saved as false, never lost on refresh
+    for (const r of this.rows) {
+      state[r.fileName] = {
+        starred: r.starred,
+        trashed: r.trashed,
+        trashedAt: r.trashedAt ? r.trashedAt.toISOString() : null
+      };
     }
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
+  }
+
+  toggleSelect(d: DocRow) { d.selected = !d.selected; this.cdr.markForCheck(); }
+  clearSelection() { this.rows.forEach(r => r.selected = false); this.applyAll(); }
+  toggleAll() { const all = this.allSelected; this.visible.forEach(d => d.selected = !all); this.cdr.markForCheck(); }
+
+  onCardClick(d: DocRow, e: MouseEvent) {
+    if (e.ctrlKey || e.metaKey) { this.toggleSelect(d); }
+    else if (e.shiftKey && this.selectedCount > 0) {
+      const idxA = this.visible.findIndex(r => r.selected);
+      const idxB = this.visible.indexOf(d);
+      const lo = Math.min(idxA, idxB), hi = Math.max(idxA, idxB);
+      this.visible.forEach((r, i) => { if (i >= lo && i <= hi) r.selected = true; });
+      this.cdr.markForCheck();
+    } else { this.clearSelection(); this.toggleSelect(d); }
   }
   onRowClick = this.onCardClick.bind(this);
 
   bulkStar() {
-    this.visible.filter((d) => d.selected).forEach((d) => (d.starred = true));
-    this.clearSelection();
-    this.showToast('Added to Starred', 'star');
+    this.visible.filter(d => d.selected).forEach(d => d.starred = true);
+    this.savePersistedState();
+    this.clearSelection(); this.showToast('Added to Starred ⭐', 'star');
   }
   bulkTrash() {
-    this.visible
-      .filter((d) => d.selected)
-      .forEach((d) => {
-        d.trashed = true;
-        d.trashedAt = new Date();
-      });
-    this.clearSelection();
-    this.applyAll();
-    this.showToast('Moved to Trash', 'delete');
+    this.visible.filter(d => d.selected).forEach(d => { d.trashed = true; d.trashedAt = new Date(); });
+    this.savePersistedState();
+    this.clearSelection(); this.applyAll(); this.showToast('Moved to Trash 🗑️', 'delete');
   }
-
   toggleStar(d: DocRow) {
     d.starred = !d.starred;
-    this.applyAll();
-    this.showToast(d.starred ? 'Added to Starred' : 'Removed from Starred', 'star');
+    this.savePersistedState();
+    this.applyAll(); this.showToast(d.starred ? 'Added to Starred ⭐' : 'Removed from Starred', 'star');
   }
 
   trashDoc(d: DocRow) {
-    d.trashed = true;
-    d.trashedAt = new Date();
-    d.starred = false;
+    d.trashed = true; d.trashedAt = new Date(); d.starred = false;
+    this.savePersistedState();
     if (this.pvDoc === d) this.closePv();
     this.applyAll();
-    this.showToast('Moved to Trash', 'delete', true, () => {
-      d.trashed = false;
-      d.trashedAt = null;
-      this.applyAll();
+    this.showToast('Moved to Trash 🗑️', 'delete', true, () => {
+      d.trashed = false; d.trashedAt = null; this.savePersistedState(); this.applyAll();
     });
   }
-
   restoreDoc(d: DocRow) {
-    d.trashed = false;
-    d.trashedAt = null;
-    this.applyAll();
-    this.showToast('Restored', 'restore');
+    d.trashed = false; d.trashedAt = null;
+    this.savePersistedState();
+    this.applyAll(); this.showToast('Restored ✅', 'restore');
   }
   restoreAll() {
-    this.visible.forEach((d) => {
-      d.trashed = false;
-      d.trashedAt = null;
-    });
-    this.applyAll();
-    this.showToast('All restored', 'restore');
+    this.visible.forEach(d => { d.trashed = false; d.trashedAt = null; });
+    this.savePersistedState();
+    this.applyAll(); this.showToast('All restored ✅', 'restore');
   }
   emptyTrash() {
-    this.rows = this.rows.filter((r) => !r.trashed);
-    this.applyAll();
-    this.showToast('Trash emptied', 'delete_forever');
+    this.rows = this.rows.filter(r => !r.trashed);
+    this.savePersistedState();
+    this.applyAll(); this.showToast('Trash emptied', 'delete_forever');
   }
-  permanentDelete(d: DocRow) {
-    this.delDoc = d;
-  }
+  permanentDelete(d: DocRow) { this.delDoc = d; }
   confirmDelete() {
     if (!this.delDoc) return;
-    this.rows = this.rows.filter((r) => r !== this.delDoc);
+    this.rows = this.rows.filter(r => r !== this.delDoc);
     this.delDoc = null;
-    this.applyAll();
-    this.showToast('Deleted permanently', 'delete_forever');
+    this.savePersistedState();
+    this.applyAll(); this.showToast('Deleted permanently', 'delete_forever');
   }
 
-  openRename(d: DocRow) {
-    this.renameDoc = d;
-    this.renameName = d.fileName;
-  }
+  openRename(d: DocRow) { this.renameDoc = d; this.renameName = d.fileName; }
   confirmRename() {
     if (!this.renameDoc || !this.renameName.trim()) return;
     this.renameDoc.fileName = this.renameName.trim();
     this.renameDoc.ext = this.getExt(this.renameDoc.fileName);
     this.renameDoc.typeKey = getInfo(this.renameDoc.ext).key;
-    this.renameDoc = null;
-    this.applyAll();
-    this.showToast('Renamed', 'drive_file_rename_outline');
+    this.renameDoc = null; this.applyAll(); this.showToast('Renamed ✏️', 'drive_file_rename_outline');
   }
-
   copyLink(d: DocRow) {
-    if (d.downloadUrl && navigator.clipboard) {
-      navigator.clipboard
-        .writeText(d.downloadUrl)
-        .then(() => this.showToast('Link copied', 'link'));
-    }
+    if (d.downloadUrl && navigator.clipboard) { navigator.clipboard.writeText(d.downloadUrl).then(() => this.showToast('Link copied! 🔗', 'link')); }
   }
 
   openCtx(e: MouseEvent, d: DocRow) {
-    e.preventDefault();
-    this.ctxDoc = d;
-    const vpW = window.innerWidth,
-      vpH = window.innerHeight;
+    e.preventDefault(); this.ctxDoc = d;
+    const vpW = window.innerWidth, vpH = window.innerHeight;
     this.ctxX = e.clientX + 210 > vpW ? e.clientX - 210 : e.clientX;
     this.ctxY = e.clientY + 300 > vpH ? e.clientY - 300 : e.clientY;
     this.cdr.markForCheck();
   }
-  closeCtx() {
-    this.ctxDoc = null;
-    this.cdr.markForCheck();
-  }
-
-  handleGridBg(e: MouseEvent) {
-    if ((e.target as HTMLElement).classList.contains('grid')) this.clearSelection();
-  }
+  closeCtx() { this.ctxDoc = null; this.cdr.markForCheck(); }
+  handleGridBg(e: MouseEvent) { if ((e.target as HTMLElement).classList.contains('grid')) this.clearSelection(); }
 
   @HostListener('document:click', ['$event'])
   onDocClick(e: MouseEvent) {
     const t = e.target as HTMLElement;
-    if (!t.closest('.ctx-menu') && !t.closest('.cf-more') && !t.closest('[contextmenu]'))
-      this.closeCtx();
+    if (!t.closest('.ctx-menu') && !t.closest('.cf-more') && !t.closest('[contextmenu]')) this.closeCtx();
     if (!t.closest('.sort-wrap')) this.sortOpen = false;
     this.cdr.markForCheck();
   }
@@ -2192,74 +1357,32 @@ export class DocumentListComponent implements OnInit, OnDestroy {
   @HostListener('document:keydown', ['$event'])
   onKey(e: KeyboardEvent) {
     if (e.key === 'Escape') {
-      if (this.pvDoc) {
-        this.closePv();
-        return;
-      }
-      if (this.ctxDoc) {
-        this.closeCtx();
-        return;
-      }
-      if (this.renameDoc) {
-        this.renameDoc = null;
-        return;
-      }
-      if (this.delDoc) {
-        this.delDoc = null;
-        return;
-      }
-      if (this.selectedCount) {
-        this.clearSelection();
-        return;
-      }
+      if (this.pvDoc) { this.closePv(); return; }
+      if (this.ctxDoc) { this.closeCtx(); return; }
+      if (this.renameDoc) { this.renameDoc = null; return; }
+      if (this.delDoc) { this.delDoc = null; return; }
+      if (this.selectedCount) { this.clearSelection(); return; }
     }
   }
 
   openPreview(d: DocRow) {
-    this.pvDoc = d;
-    this.pvImgFail = false;
-    this.pvSafeUrl =
-      this.isPdf(d) && d.downloadUrl
-        ? this.sanitizer.bypassSecurityTrustResourceUrl(d.downloadUrl)
-        : null;
+    this.pvDoc = d; this.pvImgFail = false;
+    this.pvSafeUrl = this.isPdf(d) && d.downloadUrl ? this.sanitizer.bypassSecurityTrustResourceUrl(d.downloadUrl) : null;
     this.cdr.markForCheck();
   }
-  closePv() {
-    this.pvDoc = null;
-    this.pvSafeUrl = null;
-    this.cdr.markForCheck();
-  }
+  closePv() { this.pvDoc = null; this.pvSafeUrl = null; this.cdr.markForCheck(); }
 
   showToast(msg: string, icon = 'check', undoable = false, undoFn?: () => void) {
-    this.toast = msg;
-    this.toastIcon = icon;
-    this.toastVisible = true;
-    this.cdr.markForCheck();
+    this.toast = msg; this.toastIcon = icon; this.toastVisible = true; this.cdr.markForCheck();
     clearTimeout(this.toastTimer);
-    this.toastTimer = setTimeout(() => {
-      this.toastVisible = false;
-      this.cdr.markForCheck();
-    }, 3000);
+    this.toastTimer = setTimeout(() => { this.toastVisible = false; this.cdr.markForCheck(); }, 3000);
   }
 
-  isImg(d: DocRow) {
-    return d.typeKey === 'img';
-  }
-  isPdf(d: DocRow) {
-    return d.ext === 'pdf';
-  }
-  info(d: DocRow) {
-    return getInfo(d.ext);
-  }
-  getExt(n: string) {
-    return (n.split('.').pop() ?? '').toLowerCase();
-  }
-
-  onImgErr(e: Event, d: DocRow) {
-    d._imgOk = false;
-    this.cdr.markForCheck();
-  }
-
+  isImg(d: DocRow) { return d.typeKey === 'img'; }
+  isPdf(d: DocRow) { return d.ext === 'pdf'; }
+  info(d: DocRow) { return getInfo(d.ext); }
+  getExt(n: string) { return (n.split('.').pop() ?? '').toLowerCase(); }
+  onImgErr(e: Event, d: DocRow) { d._imgOk = false; this.cdr.markForCheck(); }
   fmt(bytes: number): string {
     if (!bytes) return '—';
     if (bytes < 1024) return `${bytes} B`;
@@ -2267,8 +1390,5 @@ export class DocumentListComponent implements OnInit, OnDestroy {
     if (bytes < 1073741824) return `${(bytes / 1048576).toFixed(1)} MB`;
     return `${(bytes / 1073741824).toFixed(2)} GB`;
   }
-
-  trackBy(_: number, d: DocRow) {
-    return d.fileName;
-  }
+  trackBy(_: number, d: DocRow) { return d.fileName; }
 }
