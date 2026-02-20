@@ -26,31 +26,31 @@ interface DocRow extends DocumentMetadata {
 }
 
 const EXT_MAP: Record<string, { key: string; icon: string; color: string; bg: string }> = {
-  pdf: { key: 'pdf', icon: 'picture_as_pdf', color: '#D93025', bg: '#FDE8E6' },
-  doc: { key: 'doc', icon: 'description', color: '#1A73E8', bg: '#E8F0FE' },
-  docx: { key: 'doc', icon: 'description', color: '#1A73E8', bg: '#E8F0FE' },
-  txt: { key: 'doc', icon: 'text_snippet', color: '#5F6368', bg: '#F1F3F4' },
-  rtf: { key: 'doc', icon: 'description', color: '#1A73E8', bg: '#E8F0FE' },
-  xls: { key: 'xls', icon: 'table_chart', color: '#188038', bg: '#E6F4EA' },
-  xlsx: { key: 'xls', icon: 'table_chart', color: '#188038', bg: '#E6F4EA' },
-  csv: { key: 'xls', icon: 'table_chart', color: '#188038', bg: '#E6F4EA' },
-  ppt: { key: 'ppt', icon: 'slideshow', color: '#D56E0C', bg: '#FEF7E0' },
-  pptx: { key: 'ppt', icon: 'slideshow', color: '#D56E0C', bg: '#FEF7E0' },
-  png: { key: 'img', icon: 'image', color: '#188038', bg: '#E6F4EA' },
-  jpg: { key: 'img', icon: 'image', color: '#188038', bg: '#E6F4EA' },
-  jpeg: { key: 'img', icon: 'image', color: '#188038', bg: '#E6F4EA' },
-  gif: { key: 'img', icon: 'gif_box', color: '#188038', bg: '#E6F4EA' },
-  webp: { key: 'img', icon: 'image', color: '#188038', bg: '#E6F4EA' },
-  svg: { key: 'img', icon: 'image', color: '#188038', bg: '#E6F4EA' },
-  bmp: { key: 'img', icon: 'image', color: '#188038', bg: '#E6F4EA' },
-  mp4: { key: 'vid', icon: 'video_file', color: '#9334E6', bg: '#F3E8FD' },
-  mov: { key: 'vid', icon: 'video_file', color: '#9334E6', bg: '#F3E8FD' },
-  avi: { key: 'vid', icon: 'video_file', color: '#9334E6', bg: '#F3E8FD' },
-  mp3: { key: 'aud', icon: 'audio_file', color: '#E8710A', bg: '#FEF3E2' },
-  wav: { key: 'aud', icon: 'audio_file', color: '#E8710A', bg: '#FEF3E2' },
-  zip: { key: 'zip', icon: 'folder_zip', color: '#F29900', bg: '#FEF9E5' },
-  rar: { key: 'zip', icon: 'folder_zip', color: '#F29900', bg: '#FEF9E5' },
-  '7z': { key: 'zip', icon: 'folder_zip', color: '#F29900', bg: '#FEF9E5' },
+  pdf:  { key: 'pdf', icon: 'picture_as_pdf', color: '#D93025', bg: '#FDE8E6' },
+  doc:  { key: 'doc', icon: 'description',    color: '#1A73E8', bg: '#E8F0FE' },
+  docx: { key: 'doc', icon: 'description',    color: '#1A73E8', bg: '#E8F0FE' },
+  txt:  { key: 'doc', icon: 'text_snippet',   color: '#5F6368', bg: '#F1F3F4' },
+  rtf:  { key: 'doc', icon: 'description',    color: '#1A73E8', bg: '#E8F0FE' },
+  xls:  { key: 'xls', icon: 'table_chart',    color: '#188038', bg: '#E6F4EA' },
+  xlsx: { key: 'xls', icon: 'table_chart',    color: '#188038', bg: '#E6F4EA' },
+  csv:  { key: 'xls', icon: 'table_chart',    color: '#188038', bg: '#E6F4EA' },
+  ppt:  { key: 'ppt', icon: 'slideshow',      color: '#D56E0C', bg: '#FEF7E0' },
+  pptx: { key: 'ppt', icon: 'slideshow',      color: '#D56E0C', bg: '#FEF7E0' },
+  png:  { key: 'img', icon: 'image',          color: '#188038', bg: '#E6F4EA' },
+  jpg:  { key: 'img', icon: 'image',          color: '#188038', bg: '#E6F4EA' },
+  jpeg: { key: 'img', icon: 'image',          color: '#188038', bg: '#E6F4EA' },
+  gif:  { key: 'img', icon: 'gif_box',        color: '#188038', bg: '#E6F4EA' },
+  webp: { key: 'img', icon: 'image',          color: '#188038', bg: '#E6F4EA' },
+  svg:  { key: 'img', icon: 'image',          color: '#188038', bg: '#E6F4EA' },
+  bmp:  { key: 'img', icon: 'image',          color: '#188038', bg: '#E6F4EA' },
+  mp4:  { key: 'vid', icon: 'video_file',     color: '#9334E6', bg: '#F3E8FD' },
+  mov:  { key: 'vid', icon: 'video_file',     color: '#9334E6', bg: '#F3E8FD' },
+  avi:  { key: 'vid', icon: 'video_file',     color: '#9334E6', bg: '#F3E8FD' },
+  mp3:  { key: 'aud', icon: 'audio_file',     color: '#E8710A', bg: '#FEF3E2' },
+  wav:  { key: 'aud', icon: 'audio_file',     color: '#E8710A', bg: '#FEF3E2' },
+  zip:  { key: 'zip', icon: 'folder_zip',     color: '#F29900', bg: '#FEF9E5' },
+  rar:  { key: 'zip', icon: 'folder_zip',     color: '#F29900', bg: '#FEF9E5' },
+  '7z': { key: 'zip', icon: 'folder_zip',     color: '#F29900', bg: '#FEF9E5' },
 };
 function getInfo(ext: string) {
   return EXT_MAP[ext] ?? { key: 'other', icon: 'insert_drive_file', color: '#5F6368', bg: '#F1F3F4' };
@@ -196,12 +196,10 @@ function getInfo(ext: string) {
         (contextmenu)="openCtx($event,d)">
 
         <div class="card-thumb">
-          <!-- Image thumbnail -->
           <img *ngIf="isImg(d) && d.downloadUrl && d._imgOk !== false"
                [src]="d.downloadUrl" class="thumb-img"
                (load)="d._imgOk = true; cdr.markForCheck()"
                (error)="onImgErr($event,d)"/>
-          <!-- File type icon for non-images OR failed images -->
           <div *ngIf="!isImg(d) || d._imgOk === false"
                class="thumb-ico" [style.background]="info(d).bg">
             <mat-icon [style.color]="info(d).color">{{ info(d).icon }}</mat-icon>
@@ -212,7 +210,9 @@ function getInfo(ext: string) {
               <mat-icon *ngIf="d.selected">check</mat-icon>
             </div>
           </div>
-          <button class="star-btn" [class.starred]="d.starred" (click)="toggleStar(d);$event.stopPropagation()" [matTooltip]="d.starred?'Unstar':'Star'">
+          <button class="star-btn" [class.starred]="d.starred"
+            (click)="toggleStar(d);$event.stopPropagation()"
+            [matTooltip]="d.starred?'Unstar':'Star'">
             <mat-icon>{{ d.starred ? 'star' : 'star_outline' }}</mat-icon>
           </button>
         </div>
@@ -418,7 +418,7 @@ function getInfo(ext: string) {
       <div class="modal-box del-box" (click)="$event.stopPropagation()">
         <div class="del-emoji">🗑️</div>
         <p class="modal-title">Delete permanently?</p>
-        <p class="del-sub"><strong>{{ delDoc.fileName }}</strong> will be gone forever.</p>
+        <p class="del-sub"><strong>{{ delDoc.fileName }}</strong> will be removed from cloud storage forever.</p>
         <div class="modal-btns">
           <button class="btn-cancel" (click)="delDoc=null">Cancel</button>
           <button class="btn-danger" (click)="confirmDelete()">Delete forever</button>
@@ -455,50 +455,29 @@ function getInfo(ext: string) {
 
     /* TOOLBAR */
     .toolbar {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-      padding: 12px 18px;
-      background: var(--white);
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding: 12px 18px; background: var(--white);
       border-bottom: 1.5px solid var(--border);
-      position: sticky;
-      top: 0;
-      z-index: 100;
+      position: sticky; top: 0; z-index: 100;
     }
-    .toolbar-left {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 110px;
-    }
+    .toolbar-left { display: flex; align-items: center; gap: 8px; min-width: 110px; }
     .tb-view-icon { color: var(--teal); font-size: 22px; }
     .tb-title { font-size: 18px; font-weight: 800; white-space: nowrap; }
 
     .search-wrap {
-      flex: 1;
-      max-width: 580px;
-      min-width: 180px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--bg);
-      border: 1.5px solid transparent;
-      border-radius: 50px;
-      padding: 8px 16px;
-      transition: all 0.2s;
+      flex: 1; max-width: 580px; min-width: 180px;
+      display: flex; align-items: center; gap: 8px;
+      background: var(--bg); border: 1.5px solid transparent;
+      border-radius: 50px; padding: 8px 16px; transition: all 0.2s;
     }
     .search-wrap.focused {
-      background: var(--white);
-      border-color: var(--teal);
+      background: var(--white); border-color: var(--teal);
       box-shadow: 0 0 0 3px rgba(46,196,182,0.12);
     }
     .s-ico { color: var(--sub); font-size: 20px; flex-shrink: 0; }
     .s-input {
-      flex: 1; border: none; outline: none;
-      background: transparent;
-      font-family: 'Nunito', sans-serif;
-      font-size: 14px; color: var(--text);
+      flex: 1; border: none; outline: none; background: transparent;
+      font-family: 'Nunito', sans-serif; font-size: 14px; color: var(--text);
     }
     .s-input::placeholder { color: #9CA3AF; }
     .s-clear {
@@ -509,42 +488,25 @@ function getInfo(ext: string) {
     .s-clear:hover { background: var(--border); }
     .s-clear mat-icon { font-size: 16px; }
 
-    .toolbar-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-left: auto;
-    }
+    .toolbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: auto; }
     .sel-pill {
-      font-size: 13px; font-weight: 700;
-      color: var(--teal); background: var(--teal-light);
-      padding: 4px 12px; border-radius: 20px;
+      font-size: 13px; font-weight: 700; color: var(--teal);
+      background: var(--teal-light); padding: 4px 12px; border-radius: 20px;
     }
     .tb-icon-btn {
       display: flex; align-items: center; gap: 4px;
       background: none; border: 1.5px solid var(--border);
-      border-radius: 10px; padding: 6px 10px;
-      cursor: pointer; color: var(--sub);
-      font-family: 'Nunito', sans-serif;
-      font-size: 13px; font-weight: 600;
-      transition: all 0.15s;
+      border-radius: 10px; padding: 6px 10px; cursor: pointer;
+      color: var(--sub); font-family: 'Nunito', sans-serif;
+      font-size: 13px; font-weight: 600; transition: all 0.15s;
     }
     .tb-icon-btn mat-icon { font-size: 20px; }
     .tb-icon-btn:hover { background: var(--bg); color: var(--text); border-color: #C0C0C0; }
 
-    .view-toggle {
-      display: flex;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      overflow: hidden;
-    }
+    .view-toggle { display: flex; border: 1.5px solid var(--border); border-radius: 10px; overflow: hidden; }
     .vt-btn {
-      background: var(--white); border: none;
-      padding: 6px 10px; cursor: pointer;
-      color: var(--sub);
-      display: flex; align-items: center;
-      transition: all 0.15s;
+      background: var(--white); border: none; padding: 6px 10px; cursor: pointer;
+      color: var(--sub); display: flex; align-items: center; transition: all 0.15s;
     }
     .vt-btn mat-icon { font-size: 20px; }
     .vt-btn.on { background: var(--teal-light); color: var(--teal); }
@@ -555,10 +517,8 @@ function getInfo(ext: string) {
     .sort-trigger .arr { font-size: 18px; }
     .sort-menu {
       position: absolute; right: 0; top: calc(100% + 6px);
-      background: var(--white);
-      border: 1.5px solid var(--border);
-      border-radius: 14px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      background: var(--white); border: 1.5px solid var(--border);
+      border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.1);
       min-width: 180px; z-index: 200; overflow: hidden;
       animation: fadeDown 0.15s ease;
     }
@@ -566,34 +526,26 @@ function getInfo(ext: string) {
       from { opacity: 0; transform: translateY(-6px); }
       to { opacity: 1; transform: none; }
     }
-    .sm-item {
-      display: flex; align-items: center; gap: 10px;
-      width: 100%; padding: 10px 14px;
-      border: none; background: none; cursor: pointer;
-      font-family: 'Nunito', sans-serif;
-      font-size: 14px; font-weight: 600;
-      color: var(--text); text-align: left;
-      transition: background 0.12s;
-    }
     .sm-section {
       font-size: 11px; font-weight: 800; color: var(--sub);
-      text-transform: uppercase; letter-spacing: 0.6px;
-      padding: 8px 14px 4px;
+      text-transform: uppercase; letter-spacing: 0.6px; padding: 8px 14px 4px;
     }
     .sm-divider { height: 1px; background: var(--border); margin: 6px 0; }
-    .sm-date-row {
-      display: flex; align-items: center; gap: 8px;
-      padding: 6px 14px;
+    .sm-item {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; padding: 10px 14px; border: none; background: none; cursor: pointer;
+      font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 600;
+      color: var(--text); text-align: left; transition: background 0.12s;
     }
-    .sm-date-label {
-      font-size: 12px; font-weight: 700; color: var(--sub);
-      width: 32px; flex-shrink: 0;
-    }
+    .sm-item:hover { background: var(--bg); }
+    .sm-item.on { color: var(--teal); }
+    .sm-item.on mat-icon { color: var(--teal); }
+    .sm-date-row { display: flex; align-items: center; gap: 8px; padding: 6px 14px; }
+    .sm-date-label { font-size: 12px; font-weight: 700; color: var(--sub); width: 32px; flex-shrink: 0; }
     .sm-date-input {
-      flex: 1; border: 1.5px solid var(--border);
-      border-radius: 8px; padding: 5px 8px;
-      font-family: 'Nunito', sans-serif; font-size: 12px;
-      color: var(--text); outline: none; transition: border-color 0.15s;
+      flex: 1; border: 1.5px solid var(--border); border-radius: 8px; padding: 5px 8px;
+      font-family: 'Nunito', sans-serif; font-size: 12px; color: var(--text);
+      outline: none; transition: border-color 0.15s;
     }
     .sm-date-input:focus { border-color: var(--teal); }
     .sm-clear-date {
@@ -602,30 +554,21 @@ function getInfo(ext: string) {
       padding: 6px 10px; border-radius: 8px;
       border: 1.5px solid var(--coral); background: var(--coral-light);
       color: var(--coral); cursor: pointer;
-      font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700;
-      transition: all 0.15s;
+      font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; transition: all 0.15s;
     }
     .sm-clear-date mat-icon { font-size: 14px; }
     .sm-clear-date:hover { background: var(--coral); color: white; }
-    .sm-item:hover { background: var(--bg); }
-    .sm-item.on { color: var(--teal); }
-    .sm-item.on mat-icon { color: var(--teal); }
 
     /* CHIPS */
     .chips-row {
       display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
-      padding: 10px 18px;
-      background: var(--white);
-      border-bottom: 1.5px solid var(--border);
+      padding: 10px 18px; background: var(--white); border-bottom: 1.5px solid var(--border);
     }
     .chip {
       display: inline-flex; align-items: center; gap: 5px;
-      padding: 5px 14px; border-radius: 20px;
-      border: 1.5px solid var(--border);
-      background: var(--white);
-      font-family: 'Nunito', sans-serif;
-      font-size: 13px; font-weight: 600; cursor: pointer;
-      color: var(--sub); transition: all 0.15s;
+      padding: 5px 14px; border-radius: 20px; border: 1.5px solid var(--border);
+      background: var(--white); font-family: 'Nunito', sans-serif;
+      font-size: 13px; font-weight: 600; cursor: pointer; color: var(--sub); transition: all 0.15s;
     }
     .chip:hover { background: var(--bg); color: var(--text); }
     .chip.on { background: var(--teal-light); border-color: var(--teal); color: var(--teal); }
@@ -634,15 +577,11 @@ function getInfo(ext: string) {
     /* LOADING / EMPTY */
     .state-center {
       display: flex; flex-direction: column; align-items: center;
-      justify-content: center; padding: 80px 24px; text-align: center;
-      gap: 12px;
+      justify-content: center; padding: 80px 24px; text-align: center; gap: 12px;
     }
     .spinner-ring {
-      width: 44px; height: 44px;
-      border: 3px solid var(--border);
-      border-top-color: var(--teal);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+      width: 44px; height: 44px; border: 3px solid var(--border);
+      border-top-color: var(--teal); border-radius: 50%; animation: spin 0.8s linear infinite;
     }
     .empty-illustration { font-size: 64px; margin-bottom: 4px; }
     .empty-title { font-size: 18px; font-weight: 800; }
@@ -651,117 +590,71 @@ function getInfo(ext: string) {
       display: inline-flex; align-items: center; gap: 8px;
       background: var(--teal); color: white; text-decoration: none;
       padding: 11px 24px; border-radius: 50px;
-      font-family: 'Nunito', sans-serif;
-      font-size: 14px; font-weight: 700;
-      transition: all 0.2s;
-      box-shadow: 0 2px 10px rgba(46,196,182,0.3);
+      font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 700;
+      transition: all 0.2s; box-shadow: 0 2px 10px rgba(46,196,182,0.3);
     }
     .empty-cta:hover { background: #25a99d; transform: translateY(-1px); }
     .empty-cta mat-icon { font-size: 18px; }
-
     @keyframes spin { to { transform: rotate(360deg); } }
     .spinning { animation: spin 0.8s linear infinite; }
 
     /* GRID */
     .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
-      gap: 12px;
-      padding: 16px;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+      gap: 12px; padding: 16px;
     }
     .file-card {
-      background: var(--white);
-      border: 1.5px solid var(--border);
-      border-radius: 16px;
-      overflow: hidden;
-      cursor: pointer;
+      background: var(--white); border: 1.5px solid var(--border); border-radius: 16px;
+      overflow: hidden; cursor: pointer; position: relative; user-select: none;
       transition: box-shadow 0.2s, border-color 0.15s, transform 0.15s;
-      position: relative;
-      user-select: none;
     }
-    .file-card:hover {
-      box-shadow: 0 6px 24px rgba(0,0,0,0.09);
-      border-color: #C5C5C5;
-      transform: translateY(-2px);
-    }
-    .file-card.selected {
-      border-color: var(--teal);
-      background: var(--teal-light);
-    }
+    .file-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.09); border-color: #C5C5C5; transform: translateY(-2px); }
+    .file-card.selected { border-color: var(--teal); background: var(--teal-light); }
 
     .card-thumb {
-      position: relative;
-      height: 138px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      background: #F3F4F6;
+      position: relative; height: 138px;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden; background: #F9FAFB;
     }
     .thumb-img { width: 100%; height: 100%; object-fit: cover; }
-    .thumb-ico {
-      width: 100%; height: 100%;
-      display: flex; align-items: center; justify-content: center;
-    }
+    .thumb-ico { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
     .thumb-ico mat-icon { font-size: 54px; width: 54px; height: 54px; }
-
-    .card-thumb { background: #F9FAFB; }
-    .thumb-ico { background: transparent; }
     .ext-pill {
       position: absolute; bottom: 8px; left: 8px;
       background: rgba(0,0,0,0.55); color: white;
-      font-size: 10px; font-weight: 800;
-      padding: 2px 8px; border-radius: 6px;
+      font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px;
       text-transform: uppercase; letter-spacing: 0.5px;
     }
-
-    .sel-check {
-      position: absolute; top: 8px; left: 8px;
-      opacity: 0; transition: opacity 0.12s;
-    }
+    .sel-check { position: absolute; top: 8px; left: 8px; opacity: 0; transition: opacity 0.12s; }
     .sel-check.show, .file-card:hover .sel-check { opacity: 1; }
     .chk {
       width: 22px; height: 22px; border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.9);
-      background: rgba(255,255,255,0.9);
+      border: 2px solid rgba(255,255,255,0.9); background: rgba(255,255,255,0.9);
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; transition: all 0.12s;
     }
     .chk mat-icon { font-size: 14px; color: var(--teal); }
     .chk.on { background: var(--teal); border-color: var(--teal); }
     .chk.on mat-icon { color: white; }
-
     .star-btn {
       position: absolute; top: 6px; right: 6px;
       background: rgba(255,255,255,0.85); border: none; border-radius: 50%;
-      width: 28px; height: 28px;
-      display: flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
       cursor: pointer; opacity: 0; transition: opacity 0.12s;
     }
     .star-btn mat-icon { font-size: 16px; color: var(--sub); }
     .star-btn.starred mat-icon { color: #F59E0B; }
     .star-btn.starred, .file-card:hover .star-btn { opacity: 1; }
 
-    .card-footer {
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px 12px;
-      border-top: 1px solid var(--border);
-    }
-    .cf-icon {
-      width: 28px; height: 28px; border-radius: 7px;
-      flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-    }
+    .card-footer { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); }
+    .cf-icon { width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
     .cf-icon mat-icon { font-size: 16px; }
     .cf-text { flex: 1; min-width: 0; }
-    .cf-name {
-      font-size: 13px; font-weight: 700;
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
+    .cf-name { font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .cf-date { font-size: 11px; color: var(--sub); }
     .cf-more {
       background: none; border: none; cursor: pointer; border-radius: 50%;
-      width: 28px; height: 28px;
-      display: flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
       color: var(--sub); opacity: 0; transition: opacity 0.12s;
     }
     .cf-more mat-icon { font-size: 18px; }
@@ -770,65 +663,44 @@ function getInfo(ext: string) {
 
     /* LIST */
     .list-wrap {
-      background: var(--white);
-      border-radius: 16px;
-      border: 1.5px solid var(--border);
-      margin: 14px 16px;
-      overflow: hidden;
+      background: var(--white); border-radius: 16px; border: 1.5px solid var(--border);
+      margin: 14px 16px; overflow: hidden;
     }
     .list-head {
-      display: grid;
-      grid-template-columns: 36px 2fr 180px 90px 70px 140px;
-      padding: 8px 14px;
-      background: var(--bg);
-      border-bottom: 1px solid var(--border);
+      display: grid; grid-template-columns: 36px 2fr 180px 90px 70px 140px;
+      padding: 8px 14px; background: var(--bg); border-bottom: 1px solid var(--border);
     }
     .lh-chk { display: flex; align-items: center; }
     .lh-col {
       font-size: 11px; font-weight: 700; color: var(--sub);
       text-transform: uppercase; letter-spacing: 0.5px;
       display: flex; align-items: center; gap: 2px;
-      background: none; border: none; cursor: default;
-      font-family: 'Nunito', sans-serif;
+      background: none; border: none; cursor: default; font-family: 'Nunito', sans-serif;
     }
     .lh-col.sortable { cursor: pointer; }
     .lh-col.sortable:hover { color: var(--text); }
     .lh-col mat-icon { font-size: 14px; }
     .lh-right { justify-content: flex-end; }
-
     .list-row {
-      display: grid;
-      grid-template-columns: 36px 2fr 180px 90px 70px 140px;
-      padding: 10px 14px; align-items: center;
-      border-bottom: 1px solid var(--border);
+      display: grid; grid-template-columns: 36px 2fr 180px 90px 70px 140px;
+      padding: 10px 14px; align-items: center; border-bottom: 1px solid var(--border);
       cursor: pointer; transition: background 0.12s; user-select: none;
     }
     .list-row:last-child { border-bottom: none; }
     .list-row:hover { background: #FAFAFA; }
     .list-row.selected { background: var(--teal-light); }
-
     .lr-chk { display: flex; align-items: center; }
     .lr-name { display: flex; align-items: center; gap: 10px; min-width: 0; }
-    .lr-ico {
-      width: 34px; height: 34px; border-radius: 9px;
-      flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-    }
+    .lr-ico { width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
     .lr-ico mat-icon { font-size: 20px; }
-    .lr-fname {
-      font-size: 14px; font-weight: 700;
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
+    .lr-fname { font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .lr-star-ico { font-size: 14px; color: #F59E0B; flex-shrink: 0; }
     .lr-col { font-size: 13px; color: var(--sub); font-weight: 500; }
-    .lr-actions {
-      display: flex; gap: 4px; justify-content: flex-end;
-      opacity: 0; transition: opacity 0.12s;
-    }
+    .lr-actions { display: flex; gap: 4px; justify-content: flex-end; opacity: 0; transition: opacity 0.12s; }
     .list-row:hover .lr-actions { opacity: 1; }
     .ra {
-      background: none; border: none; cursor: pointer;
-      border-radius: 8px; width: 30px; height: 30px;
-      display: flex; align-items: center; justify-content: center;
+      background: none; border: none; cursor: pointer; border-radius: 8px;
+      width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
       color: var(--sub); text-decoration: none; transition: all 0.12s;
     }
     .ra mat-icon { font-size: 17px; }
@@ -838,47 +710,36 @@ function getInfo(ext: string) {
 
     /* TRASH BAR */
     .trash-bar {
-      display: flex; align-items: center; gap: 10px;
-      padding: 12px 18px;
+      display: flex; align-items: center; gap: 10px; padding: 12px 18px;
       background: #FFFBEB; border-top: 1px solid #F59E0B;
-      font-size: 13px; color: #92400E;
-      position: sticky; bottom: 0; z-index: 50;
+      font-size: 13px; color: #92400E; position: sticky; bottom: 0; z-index: 50;
     }
     .trash-bar mat-icon { font-size: 18px; }
     .tb-restore {
-      margin-left: auto; background: none;
-      border: 1.5px solid #F59E0B; padding: 5px 14px;
-      border-radius: 20px; cursor: pointer;
-      font-family: 'Nunito', sans-serif; font-size: 13px;
-      font-weight: 700; color: #92400E; transition: background 0.12s;
+      margin-left: auto; background: none; border: 1.5px solid #F59E0B;
+      padding: 5px 14px; border-radius: 20px; cursor: pointer;
+      font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700;
+      color: #92400E; transition: background 0.12s;
     }
     .tb-restore:hover { background: rgba(245,158,11,0.1); }
     .tb-empty {
       background: var(--coral); border: none; color: white;
       padding: 5px 14px; border-radius: 20px; cursor: pointer;
-      font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700;
-      transition: background 0.12s;
+      font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700; transition: background 0.12s;
     }
     .tb-empty:hover { background: #E55555; }
 
     /* CONTEXT MENU */
     .ctx-menu {
-      position: fixed;
-      background: var(--white);
-      border: 1.5px solid var(--border);
-      border-radius: 14px;
-      box-shadow: 0 10px 32px rgba(0,0,0,0.12);
-      z-index: 5000; min-width: 200px; overflow: hidden;
-      animation: fadeDown 0.12s ease;
+      position: fixed; background: var(--white); border: 1.5px solid var(--border);
+      border-radius: 14px; box-shadow: 0 10px 32px rgba(0,0,0,0.12);
+      z-index: 5000; min-width: 200px; overflow: hidden; animation: fadeDown 0.12s ease;
     }
     .ctx-item {
-      display: flex; align-items: center; gap: 10px;
-      width: 100%; padding: 10px 14px;
-      border: none; background: none; cursor: pointer;
-      font-family: 'Nunito', sans-serif;
-      font-size: 14px; font-weight: 600;
-      color: var(--text); text-align: left; text-decoration: none;
-      transition: background 0.12s;
+      display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px;
+      border: none; background: none; cursor: pointer; font-family: 'Nunito', sans-serif;
+      font-size: 14px; font-weight: 600; color: var(--text); text-align: left;
+      text-decoration: none; transition: background 0.12s;
     }
     .ctx-item mat-icon { font-size: 18px; color: var(--sub); }
     .ctx-item:hover { background: var(--bg); }
@@ -888,22 +749,15 @@ function getInfo(ext: string) {
 
     /* OVERLAY & MODALS */
     .overlay {
-      position: fixed; inset: 0;
-      background: rgba(0,0,0,0.6);
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
       display: flex; align-items: center; justify-content: center;
-      z-index: 3000;
-      backdrop-filter: blur(4px);
-      animation: fadein 0.18s;
+      z-index: 3000; backdrop-filter: blur(4px); animation: fadein 0.18s;
     }
     @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
-
     .pv-shell {
-      background: var(--white);
-      border-radius: 20px;
-      width: min(1100px, 97vw);
-      height: min(90vh, 780px);
-      display: flex; flex-direction: column;
-      overflow: hidden;
+      background: var(--white); border-radius: 20px;
+      width: min(1100px, 97vw); height: min(90vh, 780px);
+      display: flex; flex-direction: column; overflow: hidden;
       box-shadow: 0 40px 80px rgba(0,0,0,0.25);
       animation: scaleIn 0.2s cubic-bezier(0.34,1.56,0.64,1);
     }
@@ -911,52 +765,32 @@ function getInfo(ext: string) {
       from { transform: scale(0.95); opacity: 0; }
       to { transform: scale(1); opacity: 1; }
     }
-
     .pv-head {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 18px; border-bottom: 1px solid var(--border);
-      gap: 12px; flex-shrink: 0;
+      padding: 14px 18px; border-bottom: 1px solid var(--border); gap: 12px; flex-shrink: 0;
     }
     .pv-title-block { display: flex; align-items: center; gap: 12px; min-width: 0; }
-    .pv-ficon {
-      width: 44px; height: 44px; border-radius: 12px;
-      flex-shrink: 0; display: flex; align-items: center; justify-content: center;
-    }
+    .pv-ficon { width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
     .pv-ficon mat-icon { font-size: 26px; }
-    .pv-fname {
-      font-size: 16px; font-weight: 800;
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
+    .pv-fname { font-size: 16px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .pv-fmeta { font-size: 12px; color: var(--sub); margin-top: 2px; }
     .pv-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
     .pv-btn {
-      background: none; border: 1.5px solid var(--border);
-      border-radius: 10px; width: 36px; height: 36px;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; color: var(--sub); text-decoration: none;
-      transition: all 0.12s;
+      background: none; border: 1.5px solid var(--border); border-radius: 10px;
+      width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--sub); text-decoration: none; transition: all 0.12s;
     }
     .pv-btn mat-icon { font-size: 20px; }
     .pv-btn:hover { background: var(--bg); color: var(--text); }
     .pv-btn.danger-btn:hover { background: var(--coral-light); color: var(--coral); border-color: var(--coral); }
     .pv-btn.close-btn { border-radius: 50%; }
-
     .pv-body { flex: 1; display: flex; overflow: hidden; }
-    .pv-img-wrap {
-      flex: 1; display: flex; align-items: center; justify-content: center;
-      overflow: hidden; background: #111; padding: 16px;
-    }
+    .pv-img-wrap { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #111; padding: 16px; }
     .pv-img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; }
     .pv-iframe { flex: 1; height: 100%; border: none; }
-    .pv-nopv {
-      flex: 1; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 12px; padding: 32px;
-    }
+    .pv-nopv { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 32px; }
     .pv-big-ico { font-size: 52px; }
-    .pv-np-ico {
-      width: 110px; height: 110px; border-radius: 24px;
-      display: flex; align-items: center; justify-content: center; margin-bottom: 8px;
-    }
+    .pv-np-ico { width: 110px; height: 110px; border-radius: 24px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
     .pv-np-title { font-size: 18px; font-weight: 800; }
     .pv-np-sub { font-size: 14px; color: var(--sub); }
     .pv-dl-btn {
@@ -968,38 +802,23 @@ function getInfo(ext: string) {
     }
     .pv-dl-btn:hover { background: #25a99d; }
     .pv-dl-btn mat-icon { font-size: 18px; }
-
-    .pv-info {
-      width: 240px; flex-shrink: 0;
-      border-left: 1px solid var(--border);
-      padding: 20px 16px; overflow-y: auto;
-    }
-    .pi-head {
-      font-size: 12px; font-weight: 800; margin-bottom: 14px;
-      text-transform: uppercase; letter-spacing: 0.6px; color: var(--sub);
-    }
-    .pi-row {
-      display: flex; justify-content: space-between;
-      align-items: flex-start;
-      padding: 8px 0; border-bottom: 1px solid var(--border);
-      font-size: 13px;
-    }
+    .pv-info { width: 240px; flex-shrink: 0; border-left: 1px solid var(--border); padding: 20px 16px; overflow-y: auto; }
+    .pi-head { font-size: 12px; font-weight: 800; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--sub); }
+    .pi-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
     .pi-row:last-of-type { border-bottom: none; }
     .pi-lbl { color: var(--sub); flex-shrink: 0; margin-right: 8px; font-weight: 600; }
     .pi-btns { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
     .pi-btn-primary {
       display: flex; align-items: center; justify-content: center; gap: 6px;
-      background: var(--teal); color: white; text-decoration: none;
-      padding: 9px 0; border-radius: 10px;
-      font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 700;
-      transition: background 0.15s;
+      background: var(--teal); color: white; text-decoration: none; padding: 9px 0; border-radius: 10px;
+      font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 700; transition: background 0.15s;
     }
     .pi-btn-primary:hover { background: #25a99d; }
     .pi-btn-primary mat-icon { font-size: 17px; }
     .pi-btn-ghost {
       display: flex; align-items: center; justify-content: center; gap: 6px;
-      background: none; border: 1.5px solid var(--border);
-      color: var(--text); padding: 9px 0; border-radius: 10px;
+      background: none; border: 1.5px solid var(--border); color: var(--text);
+      padding: 9px 0; border-radius: 10px;
       font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 700;
       cursor: pointer; transition: all 0.12s;
     }
@@ -1008,49 +827,37 @@ function getInfo(ext: string) {
 
     /* MODALS */
     .modal-box {
-      background: var(--white); border-radius: 20px;
-      padding: 28px 32px; width: 380px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.18);
-      animation: scaleIn 0.18s ease;
+      background: var(--white); border-radius: 20px; padding: 28px 32px; width: 380px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.18); animation: scaleIn 0.18s ease;
     }
     .del-box { text-align: center; width: 400px; }
     .del-emoji { font-size: 48px; margin-bottom: 12px; }
     .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 14px; }
     .del-sub { font-size: 14px; color: var(--sub); line-height: 1.5; }
     .modal-input {
-      width: 100%;
-      border: 1.5px solid var(--border);
-      border-radius: 10px; padding: 10px 12px;
-      font-family: 'Nunito', sans-serif;
-      font-size: 15px; font-weight: 600; outline: none;
-      transition: border-color 0.15s; color: var(--text);
+      width: 100%; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px;
+      font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 600;
+      outline: none; transition: border-color 0.15s; color: var(--text);
     }
     .modal-input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(46,196,182,0.12); }
-    .modal-btns {
-      display: flex; justify-content: flex-end;
-      gap: 8px; margin-top: 18px;
-    }
+    .modal-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
     .del-box .modal-btns { justify-content: center; }
     .btn-cancel {
-      padding: 9px 20px; border-radius: 10px;
-      border: 1.5px solid var(--border); background: none;
-      cursor: pointer; font-family: 'Nunito', sans-serif;
-      font-size: 14px; font-weight: 700; color: var(--text);
-      transition: background 0.12s;
+      padding: 9px 20px; border-radius: 10px; border: 1.5px solid var(--border); background: none;
+      cursor: pointer; font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 700;
+      color: var(--text); transition: background 0.12s;
     }
     .btn-cancel:hover { background: var(--bg); }
     .btn-ok {
       padding: 9px 20px; border-radius: 10px; border: none;
       background: var(--teal); color: white; cursor: pointer;
-      font-family: 'Nunito', sans-serif;
-      font-size: 14px; font-weight: 700; transition: background 0.12s;
+      font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 700; transition: background 0.12s;
     }
     .btn-ok:hover { background: #25a99d; }
     .btn-danger {
       padding: 9px 20px; border-radius: 10px; border: none;
       background: var(--coral); color: white; cursor: pointer;
-      font-family: 'Nunito', sans-serif;
-      font-size: 14px; font-weight: 700; transition: background 0.12s;
+      font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 700; transition: background 0.12s;
     }
     .btn-danger:hover { background: #E55555; }
 
@@ -1058,13 +865,10 @@ function getInfo(ext: string) {
     .toast {
       position: fixed; bottom: 24px; left: 50%;
       transform: translateX(-50%) translateY(80px);
-      background: #1A1A2E; color: white;
-      padding: 12px 22px; border-radius: 50px;
-      font-family: 'Nunito', sans-serif;
-      font-size: 14px; font-weight: 700;
+      background: #1A1A2E; color: white; padding: 12px 22px; border-radius: 50px;
+      font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 700;
       z-index: 9999; display: flex; align-items: center; gap: 8px;
-      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s;
-      opacity: 0;
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s; opacity: 0;
     }
     .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
     .toast mat-icon { font-size: 18px; }
@@ -1099,28 +903,36 @@ export class DocumentListComponent implements OnInit, OnDestroy {
   private searchTimer: any;
 
   readonly sortOptions = [
-    { key: 'name' as SortKey, label: 'Name (A → Z)' },
-    { key: 'modified' as SortKey, label: 'Last modified' },
-    { key: 'date-asc' as SortKey, label: 'Date (oldest first)' },
+    { key: 'name' as SortKey,      label: 'Name (A → Z)' },
+    { key: 'modified' as SortKey,  label: 'Last modified' },
+    { key: 'date-asc' as SortKey,  label: 'Date (oldest first)' },
     { key: 'date-desc' as SortKey, label: 'Date (newest first)' },
-    { key: 'size' as SortKey, label: 'File size' },
-    { key: 'type' as SortKey, label: 'Type' },
+    { key: 'size' as SortKey,      label: 'File size' },
+    { key: 'type' as SortKey,      label: 'Type' },
   ];
 
   get sortLabel() { return this.sortOptions.find(s => s.key === this.sortKey)?.label ?? 'Sort'; }
   get selectedCount() { return this.visible.filter(d => d.selected).length; }
   get allSelected() { return this.visible.length > 0 && this.visible.every(d => d.selected); }
   get viewTitle() {
-    return this.view === 'starred' ? 'Starred' : this.view === 'recent' ? 'Recent'
-      : this.view === 'trash' ? 'Trash' : 'My Files';
+    return this.view === 'starred' ? 'Starred'
+      : this.view === 'recent' ? 'Recent'
+      : this.view === 'trash' ? 'Trash'
+      : 'My Files';
   }
   get viewIcon() {
-    return this.view === 'starred' ? 'star_outline' : this.view === 'recent' ? 'access_time'
-      : this.view === 'trash' ? 'delete_outline' : 'folder_open';
+    return this.view === 'starred' ? 'star_outline'
+      : this.view === 'recent' ? 'access_time'
+      : this.view === 'trash' ? 'delete_outline'
+      : 'folder_open';
   }
 
-  constructor(private svc: DocumentService, public cdr: ChangeDetectorRef,
-    private sanitizer: DomSanitizer, private route: ActivatedRoute) {}
+  constructor(
+    private svc: DocumentService,
+    public cdr: ChangeDetectorRef,
+    private sanitizer: DomSanitizer,
+    private route: ActivatedRoute
+  ) {}
 
   ngOnInit() {
     this.route.url.subscribe(segs => {
@@ -1132,17 +944,18 @@ export class DocumentListComponent implements OnInit, OnDestroy {
       this.applyAll();
     });
     this.route.queryParams.subscribe(params => {
-      if (params['type']) {
-        this.typeFilter = params['type'];
-        this.cdr.markForCheck();
-      }
+      if (params['type']) { this.typeFilter = params['type']; this.cdr.markForCheck(); }
     });
     this.load();
-    this.refreshTimer = setInterval(() => { if (!this.query.trim() && !this.pvDoc) this.load(); }, 8000);
+    this.refreshTimer = setInterval(() => {
+      if (!this.query.trim() && !this.pvDoc) this.load();
+    }, 8000);
   }
 
   ngOnDestroy() {
-    clearInterval(this.refreshTimer); clearTimeout(this.searchTimer); clearTimeout(this.toastTimer);
+    clearInterval(this.refreshTimer);
+    clearTimeout(this.searchTimer);
+    clearTimeout(this.toastTimer);
   }
 
   load() {
@@ -1150,20 +963,20 @@ export class DocumentListComponent implements OnInit, OnDestroy {
     this.svc.list().subscribe({
       next: (docs) => {
         const persisted = this.loadPersistedState();
-        // Keep in-memory state so recent star/unstar actions aren't overwritten by refresh
+        // Preserve in-memory state so recent star/unstar/trash actions aren't overwritten by refresh
         const inMemory = new Map(this.rows.map(r => [r.fileName, r]));
         this.rows = docs.map(d => {
           const ext = this.getExt(d.fileName);
           const mem = inMemory.get(d.fileName);
           const saved = persisted[d.fileName];
-          // Priority: in-memory (most recent user action) > localStorage > default false
+          // Priority: in-memory > localStorage > default false
           return {
             ...d, ext,
             typeKey: getInfo(ext).key,
-            starred: mem ? mem.starred : (saved?.starred ?? false),
-            trashed: mem ? mem.trashed : (saved?.trashed ?? false),
+            starred:   mem ? mem.starred   : (saved?.starred   ?? false),
+            trashed:   mem ? mem.trashed   : (saved?.trashed   ?? false),
             trashedAt: mem ? mem.trashedAt : (saved?.trashedAt ? new Date(saved.trashedAt) : null),
-            selected: false
+            selected: false,
           } as DocRow;
         });
         this.loading = false; this.applyAll(); this.cdr.markForCheck();
@@ -1194,7 +1007,9 @@ export class DocumentListComponent implements OnInit, OnDestroy {
   }
 
   clearSearch() { this.query = ''; this.applyAll(); }
+
   setType(t: string) { this.typeFilter = t; this.applyAll(); }
+
   setSort(k: SortKey) {
     if (this.sortKey === k) this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
     else { this.sortKey = k; this.sortDir = 'asc'; }
@@ -1203,11 +1018,14 @@ export class DocumentListComponent implements OnInit, OnDestroy {
 
   applyAll() {
     let pool = [...this.rows];
-    if (this.view === 'starred') pool = pool.filter(d => d.starred && !d.trashed);
+    if (this.view === 'starred')     pool = pool.filter(d => d.starred && !d.trashed);
     else if (this.view === 'recent') pool = pool.filter(d => !d.trashed).slice(0, 20);
-    else if (this.view === 'trash') pool = pool.filter(d => d.trashed);
-    else pool = pool.filter(d => !d.trashed);
-    if (this.query.trim()) { const q = this.query.toLowerCase(); pool = pool.filter(d => d.fileName.toLowerCase().includes(q)); }
+    else if (this.view === 'trash')  pool = pool.filter(d => d.trashed);
+    else                             pool = pool.filter(d => !d.trashed);
+    if (this.query.trim()) {
+      const q = this.query.toLowerCase();
+      pool = pool.filter(d => d.fileName.toLowerCase().includes(q));
+    }
     this.visible = this.applyFiltersAndSort(pool);
     this.cdr.markForCheck();
   }
@@ -1228,18 +1046,19 @@ export class DocumentListComponent implements OnInit, OnDestroy {
     return pool.sort((a, b) => {
       let va: string | number, vb: string | number;
       switch (this.sortKey) {
-        case 'name': va = a.fileName.toLowerCase(); vb = b.fileName.toLowerCase(); break;
-        case 'modified': va = new Date(a.uploadedAt).getTime(); vb = new Date(b.uploadedAt).getTime(); break;
-        case 'date-asc': return new Date(a.uploadedAt).getTime() - new Date(b.uploadedAt).getTime();
+        case 'name':      va = a.fileName.toLowerCase();          vb = b.fileName.toLowerCase(); break;
+        case 'modified':  va = new Date(a.uploadedAt).getTime();  vb = new Date(b.uploadedAt).getTime(); break;
+        case 'date-asc':  return new Date(a.uploadedAt).getTime() - new Date(b.uploadedAt).getTime();
         case 'date-desc': return new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime();
-        case 'size': va = a.sizeBytes; vb = b.sizeBytes; break;
-        case 'type': va = a.ext; vb = b.ext; break;
-        default: va = vb = 0;
+        case 'size':      va = a.sizeBytes; vb = b.sizeBytes; break;
+        case 'type':      va = a.ext; vb = b.ext; break;
+        default:          va = vb = 0;
       }
       return (va < vb ? -1 : va > vb ? 1 : 0) * (this.sortDir === 'asc' ? 1 : -1);
     });
   }
 
+  // ── PERSISTENCE ────────────────────────────────────────────────────────────
   private readonly STORAGE_KEY = 'docvault_file_state';
 
   private loadPersistedState(): Record<string, { starred: boolean; trashed: boolean; trashedAt: string | null }> {
@@ -1248,94 +1067,143 @@ export class DocumentListComponent implements OnInit, OnDestroy {
 
   private savePersistedState() {
     const state: Record<string, { starred: boolean; trashed: boolean; trashedAt: string | null }> = {};
-    // Save ALL files explicitly — so unstar/untrash is saved as false, never lost on refresh
+    // Save ALL files explicitly — unstar/untrash saved as false so it's never lost on refresh
     for (const r of this.rows) {
       state[r.fileName] = {
-        starred: r.starred,
-        trashed: r.trashed,
-        trashedAt: r.trashedAt ? r.trashedAt.toISOString() : null
+        starred:   r.starred,
+        trashed:   r.trashed,
+        trashedAt: r.trashedAt ? r.trashedAt.toISOString() : null,
       };
     }
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
   }
 
+  // ── SELECTION ──────────────────────────────────────────────────────────────
   toggleSelect(d: DocRow) { d.selected = !d.selected; this.cdr.markForCheck(); }
   clearSelection() { this.rows.forEach(r => r.selected = false); this.applyAll(); }
   toggleAll() { const all = this.allSelected; this.visible.forEach(d => d.selected = !all); this.cdr.markForCheck(); }
 
   onCardClick(d: DocRow, e: MouseEvent) {
-    if (e.ctrlKey || e.metaKey) { this.toggleSelect(d); }
-    else if (e.shiftKey && this.selectedCount > 0) {
+    if (e.ctrlKey || e.metaKey) {
+      this.toggleSelect(d);
+    } else if (e.shiftKey && this.selectedCount > 0) {
       const idxA = this.visible.findIndex(r => r.selected);
       const idxB = this.visible.indexOf(d);
       const lo = Math.min(idxA, idxB), hi = Math.max(idxA, idxB);
       this.visible.forEach((r, i) => { if (i >= lo && i <= hi) r.selected = true; });
       this.cdr.markForCheck();
-    } else { this.clearSelection(); this.toggleSelect(d); }
+    } else {
+      this.clearSelection(); this.toggleSelect(d);
+    }
   }
   onRowClick = this.onCardClick.bind(this);
 
+  // ── BULK ACTIONS ───────────────────────────────────────────────────────────
   bulkStar() {
     this.visible.filter(d => d.selected).forEach(d => d.starred = true);
     this.savePersistedState();
-    this.clearSelection(); this.showToast('Added to Starred ⭐', 'star');
+    this.clearSelection();
+    this.showToast('Added to Starred ⭐', 'star');
   }
   bulkTrash() {
     this.visible.filter(d => d.selected).forEach(d => { d.trashed = true; d.trashedAt = new Date(); });
     this.savePersistedState();
-    this.clearSelection(); this.applyAll(); this.showToast('Moved to Trash 🗑️', 'delete');
+    this.clearSelection(); this.applyAll();
+    this.showToast('Moved to Trash 🗑️', 'delete');
   }
+
+  // ── STAR ───────────────────────────────────────────────────────────────────
   toggleStar(d: DocRow) {
     d.starred = !d.starred;
     this.savePersistedState();
-    this.applyAll(); this.showToast(d.starred ? 'Added to Starred ⭐' : 'Removed from Starred', 'star');
+    this.applyAll();
+    this.showToast(d.starred ? 'Added to Starred ⭐' : 'Removed from Starred', 'star');
   }
 
+  // ── TRASH (local only — file stays in cloud) ───────────────────────────────
   trashDoc(d: DocRow) {
     d.trashed = true; d.trashedAt = new Date(); d.starred = false;
     this.savePersistedState();
     if (this.pvDoc === d) this.closePv();
     this.applyAll();
-    this.showToast('Moved to Trash 🗑️', 'delete', true, () => {
-      d.trashed = false; d.trashedAt = null; this.savePersistedState(); this.applyAll();
-    });
+    this.showToast('Moved to Trash 🗑️', 'delete');
   }
   restoreDoc(d: DocRow) {
     d.trashed = false; d.trashedAt = null;
     this.savePersistedState();
-    this.applyAll(); this.showToast('Restored ✅', 'restore');
+    this.applyAll();
+    this.showToast('Restored ✅', 'restore');
   }
   restoreAll() {
     this.visible.forEach(d => { d.trashed = false; d.trashedAt = null; });
     this.savePersistedState();
-    this.applyAll(); this.showToast('All restored ✅', 'restore');
-  }
-  emptyTrash() {
-    this.rows = this.rows.filter(r => !r.trashed);
-    this.savePersistedState();
-    this.applyAll(); this.showToast('Trash emptied', 'delete_forever');
-  }
-  permanentDelete(d: DocRow) { this.delDoc = d; }
-  confirmDelete() {
-    if (!this.delDoc) return;
-    this.rows = this.rows.filter(r => r !== this.delDoc);
-    this.delDoc = null;
-    this.savePersistedState();
-    this.applyAll(); this.showToast('Deleted permanently', 'delete_forever');
+    this.applyAll();
+    this.showToast('All restored ✅', 'restore');
   }
 
+  // ── PERMANENT DELETE (calls cloud API) ─────────────────────────────────────
+  async emptyTrash() {
+    const trashed = this.rows.filter(r => r.trashed);
+    if (trashed.length === 0) return;
+    this.showToast(`Deleting ${trashed.length} file(s)…`, 'hourglass_empty');
+    let completed = 0; let failed = 0;
+    for (const d of trashed) {
+      try {
+        await this.svc.delete(d.id).toPromise();
+        this.rows = this.rows.filter(r => r !== d);
+        this.savePersistedState();
+        completed++;
+        await new Promise(resolve => setTimeout(resolve, 300));
+      } catch {
+        failed++;
+      }
+    }
+    this.applyAll();
+    this.showToast(
+      failed > 0 ? `Deleted ${completed}, ${failed} failed` : 'Trash emptied 🗑️',
+      'delete_forever'
+    );
+    this.cdr.markForCheck();
+  }
+
+  permanentDelete(d: DocRow) { this.delDoc = d; }
+
+  confirmDelete() {
+    if (!this.delDoc) return;
+    const target = this.delDoc;
+    this.delDoc = null;
+    this.showToast('Deleting…', 'hourglass_empty');
+    this.svc.delete(target.id).subscribe({
+      next: () => {
+        this.rows = this.rows.filter(r => r !== target);
+        this.savePersistedState();
+        this.applyAll();
+        this.showToast('Deleted permanently 🗑️', 'delete_forever');
+      },
+      error: () => {
+        this.showToast('Delete failed — please try again', 'error');
+      }
+    });
+  }
+
+  // ── RENAME ─────────────────────────────────────────────────────────────────
   openRename(d: DocRow) { this.renameDoc = d; this.renameName = d.fileName; }
   confirmRename() {
     if (!this.renameDoc || !this.renameName.trim()) return;
     this.renameDoc.fileName = this.renameName.trim();
     this.renameDoc.ext = this.getExt(this.renameDoc.fileName);
     this.renameDoc.typeKey = getInfo(this.renameDoc.ext).key;
-    this.renameDoc = null; this.applyAll(); this.showToast('Renamed ✏️', 'drive_file_rename_outline');
-  }
-  copyLink(d: DocRow) {
-    if (d.downloadUrl && navigator.clipboard) { navigator.clipboard.writeText(d.downloadUrl).then(() => this.showToast('Link copied! 🔗', 'link')); }
+    this.renameDoc = null; this.applyAll();
+    this.showToast('Renamed ✏️', 'drive_file_rename_outline');
   }
 
+  copyLink(d: DocRow) {
+    if (d.downloadUrl && navigator.clipboard) {
+      navigator.clipboard.writeText(d.downloadUrl).then(() => this.showToast('Link copied! 🔗', 'link'));
+    }
+  }
+
+  // ── CONTEXT MENU ───────────────────────────────────────────────────────────
   openCtx(e: MouseEvent, d: DocRow) {
     e.preventDefault(); this.ctxDoc = d;
     const vpW = window.innerWidth, vpH = window.innerHeight;
@@ -1357,36 +1225,40 @@ export class DocumentListComponent implements OnInit, OnDestroy {
   @HostListener('document:keydown', ['$event'])
   onKey(e: KeyboardEvent) {
     if (e.key === 'Escape') {
-      if (this.pvDoc) { this.closePv(); return; }
-      if (this.ctxDoc) { this.closeCtx(); return; }
-      if (this.renameDoc) { this.renameDoc = null; return; }
-      if (this.delDoc) { this.delDoc = null; return; }
+      if (this.pvDoc)    { this.closePv(); return; }
+      if (this.ctxDoc)   { this.closeCtx(); return; }
+      if (this.renameDoc){ this.renameDoc = null; return; }
+      if (this.delDoc)   { this.delDoc = null; return; }
       if (this.selectedCount) { this.clearSelection(); return; }
     }
   }
 
+  // ── PREVIEW ────────────────────────────────────────────────────────────────
   openPreview(d: DocRow) {
     this.pvDoc = d; this.pvImgFail = false;
-    this.pvSafeUrl = this.isPdf(d) && d.downloadUrl ? this.sanitizer.bypassSecurityTrustResourceUrl(d.downloadUrl) : null;
+    this.pvSafeUrl = this.isPdf(d) && d.downloadUrl
+      ? this.sanitizer.bypassSecurityTrustResourceUrl(d.downloadUrl) : null;
     this.cdr.markForCheck();
   }
   closePv() { this.pvDoc = null; this.pvSafeUrl = null; this.cdr.markForCheck(); }
 
+  // ── TOAST ──────────────────────────────────────────────────────────────────
   showToast(msg: string, icon = 'check', undoable = false, undoFn?: () => void) {
     this.toast = msg; this.toastIcon = icon; this.toastVisible = true; this.cdr.markForCheck();
     clearTimeout(this.toastTimer);
     this.toastTimer = setTimeout(() => { this.toastVisible = false; this.cdr.markForCheck(); }, 3000);
   }
 
+  // ── HELPERS ────────────────────────────────────────────────────────────────
   isImg(d: DocRow) { return d.typeKey === 'img'; }
   isPdf(d: DocRow) { return d.ext === 'pdf'; }
-  info(d: DocRow) { return getInfo(d.ext); }
+  info(d: DocRow)  { return getInfo(d.ext); }
   getExt(n: string) { return (n.split('.').pop() ?? '').toLowerCase(); }
   onImgErr(e: Event, d: DocRow) { d._imgOk = false; this.cdr.markForCheck(); }
   fmt(bytes: number): string {
     if (!bytes) return '—';
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+    if (bytes < 1024)       return `${bytes} B`;
+    if (bytes < 1048576)    return `${(bytes / 1024).toFixed(1)} KB`;
     if (bytes < 1073741824) return `${(bytes / 1048576).toFixed(1)} MB`;
     return `${(bytes / 1073741824).toFixed(2)} GB`;
   }
