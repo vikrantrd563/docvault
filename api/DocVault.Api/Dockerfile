@@ -15,5 +15,4 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 EXPOSE 8080
 COPY --from=publish /app/publish .
-USER 
 ENTRYPOINT ["dotnet", "DocVault.Api.dll"]
