@@ -4,6 +4,7 @@ using Azure.Storage.Blobs;
 using Microsoft.Azure.Cosmos;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
+using Azure.Messaging.EventGrid;         
 
 public class BlobTriggerFunction
 {
@@ -23,11 +24,24 @@ public class BlobTriggerFunction
 
     [Function(nameof(ProcessDocument))]
     public async Task ProcessDocument(
-        [BlobTrigger("uploads/{name}", Connection = "StorageConnectionString")]
-        Stream blobStream,
-        string name)
+        [EventGridTrigger] EventGridEvent eventGridEvent)   
     {
+        _logger.LogInformation(
+            "Event Grid trigger: {Subject} | {Type}",
+            eventGridEvent.Subject, eventGridEvent.EventType);
+
+      
+        var data = eventGridEvent.Data.ToObjectFromJson<DocumentUploadedData>();
+        var name = data.BlobName;
+
         _logger.LogInformation("Processing blob: {Name}", name);
+
+        var container = _blobClient.GetBlobContainerClient("uploads");
+        var blobClientRef = container.GetBlobClient(name);
+
+        using var blobStream = new MemoryStream();
+        await blobClientRef.DownloadToAsync(blobStream);
+        blobStream.Position = 0;
 
         if (name.EndsWith(".jpg") || name.EndsWith(".png") || name.EndsWith(".jpeg"))
         {
@@ -55,6 +69,7 @@ public class BlobTriggerFunction
         await UpdateDocumentMetadata(name, null, "Text extraction placeholder");
     }
 
+    
     private async Task UpdateDocumentMetadata(
         string blobName, string? thumbName, string? excerpt)
     {
@@ -76,4 +91,15 @@ public class BlobTriggerFunction
             }
         }
     }
+}
+
+// NEW: Data model matching what Akshay's API publishes to Event Grid
+public class DocumentUploadedData
+{
+    public string DocumentId { get; set; }
+    public string UserId { get; set; }
+    public string FileName { get; set; }
+    public string BlobName { get; set; }
+    public string ContentType { get; set; }
+    public long SizeBytes { get; set; }
 }
