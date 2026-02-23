@@ -33,7 +33,11 @@ export class DocumentService {
       `${this.apiUrl}/documents/search?q=${encodeURIComponent(query)}`);
   }
 
+  rename(id: string, fileName: string): Observable<DocumentMetadata> {
+    return this.http.patch<DocumentMetadata>(`${this.apiUrl}/documents/${id}/rename`, { fileName });
+  }
   delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/documents/${id}`);
   }
 }
+

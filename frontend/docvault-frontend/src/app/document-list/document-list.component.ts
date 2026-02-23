@@ -1190,11 +1190,19 @@ export class DocumentListComponent implements OnInit, OnDestroy {
   openRename(d: DocRow) { this.renameDoc = d; this.renameName = d.fileName; }
   confirmRename() {
     if (!this.renameDoc || !this.renameName.trim()) return;
-    this.renameDoc.fileName = this.renameName.trim();
-    this.renameDoc.ext = this.getExt(this.renameDoc.fileName);
-    this.renameDoc.typeKey = getInfo(this.renameDoc.ext).key;
-    this.renameDoc = null; this.applyAll();
-    this.showToast('Renamed ✏️', 'drive_file_rename_outline');
+    const target = this.renameDoc;
+    const newName = this.renameName.trim();
+    this.renameDoc = null;
+    this.svc.rename(target.id, newName).subscribe({
+      next: () => {
+        target.fileName = newName;
+        target.ext = this.getExt(newName);
+        target.typeKey = getInfo(target.ext).key;
+        this.applyAll();
+        this.showToast('Renamed', 'drive_file_rename_outline');
+      },
+      error: () => this.showToast('Rename failed - please try again', 'error')
+    });
   }
 
   copyLink(d: DocRow) {
