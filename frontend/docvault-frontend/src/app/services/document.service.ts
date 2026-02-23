@@ -15,7 +15,6 @@ export interface DocumentMetadata {
 
 @Injectable({ providedIn: 'root' })
 export class DocumentService {
-
   private readonly apiUrl = environment.apiBaseUrl;
 
   constructor(private http: HttpClient) {}
@@ -30,7 +29,8 @@ export class DocumentService {
 
   search(query: string): Observable<DocumentMetadata[]> {
     return this.http.get<DocumentMetadata[]>(
-      `${this.apiUrl}/documents/search?q=${encodeURIComponent(query)}`);
+      `${this.apiUrl}/documents/search?q=${encodeURIComponent(query)}`,
+    );
   }
 
   delete(id: string): Observable<void> {
