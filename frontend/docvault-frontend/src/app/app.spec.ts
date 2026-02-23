@@ -1,31 +1,10 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
-import { AppComponent as App } from './app.component';
-import { MsalService, MsalBroadcastService } from '@azure/msal-angular';
-
-const msalMock = {
-  loginRedirect: () => {},
-  instance: {
-    initialize: () => Promise.resolve(),
-    getAllAccounts: () => [],
-    getActiveAccount: () => null,
-  }
-};
-
-const msalBroadcastMock = {
-  msalSubject$: { subscribe: () => {} },
-  inProgress$: { pipe: () => ({ subscribe: () => {} }) }
-};
+import { App } from './app';
 
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [
-        provideRouter([]),
-        { provide: MsalService, useValue: msalMock },
-        { provide: MsalBroadcastService, useValue: msalBroadcastMock }
-      ]
     }).compileComponents();
   });
 
@@ -33,5 +12,12 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
+  });
+
+  it('should render title', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, docvault-frontend');
   });
 });
