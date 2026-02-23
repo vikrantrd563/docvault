@@ -7,9 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Cosmos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
-using Microsoft.ApplicationInsights;                 
-using Microsoft.ApplicationInsights.DataContracts;  
-using System.Diagnostics;                           
+using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.DataContracts;
+using System.Diagnostics;
 
 namespace DocVault.Api.Controllers
 {
@@ -22,20 +22,20 @@ namespace DocVault.Api.Controllers
         private readonly CosmosClient _cosmosClient;
         private readonly ILogger<DocumentsController> _logger;
         private readonly IConfiguration _config;
-        private readonly TelemetryClient _telemetry;   
+        private readonly TelemetryClient _telemetry;
 
         public DocumentsController(
             BlobServiceClient blob,
             CosmosClient cosmos,
             IConfiguration config,
             ILogger<DocumentsController> logger,
-            TelemetryClient telemetry)                 
+            TelemetryClient telemetry)
         {
             _blobClient = blob;
             _cosmosClient = cosmos;
             _config = config;
             _logger = logger;
-            _telemetry = telemetry;                    
+            _telemetry = telemetry;
         }
 
         private string? GetUserId()
@@ -48,7 +48,7 @@ namespace DocVault.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> Upload(IFormFile file)
         {
-            var sw = Stopwatch.StartNew();   
+            var sw = Stopwatch.StartNew();
 
             if (file == null || file.Length == 0)
                 return BadRequest("No file provided.");
@@ -103,10 +103,7 @@ namespace DocVault.Api.Controllers
                         });
 
                     await client.SendEventAsync(evt);
-
-                    _logger.LogInformation(
-                        "Published DocumentUploaded event for {Id}",
-                        doc.Id);
+                    _logger.LogInformation("Published DocumentUploaded event for {Id}", doc.Id);
                 }
                 else
                 {
@@ -118,11 +115,8 @@ namespace DocVault.Api.Controllers
                 _logger.LogError(ex, "Failed to publish event");
             }
 
-            
             sw.Stop();
-            _telemetry.TrackMetric(
-                "DocumentUploadDurationMs",
-                sw.ElapsedMilliseconds);
+            _telemetry.TrackMetric("DocumentUploadDurationMs", sw.ElapsedMilliseconds);
             _telemetry.TrackEvent(
                 "DocumentUploaded",
                 new Dictionary<string, string>
@@ -210,15 +204,71 @@ namespace DocVault.Api.Controllers
             return Ok(results);
         }
 
+        // ─── RENAME ──────────────────────────────────────────────────────────────
+        // PATCH /api/documents/{id}/rename
+        // Body: { "newFileName": "my-new-name.pdf" }
+        [HttpPatch("{id}/rename")]
+        public async Task<IActionResult> Rename(string id, [FromBody] RenameRequest body)
+        {
+            if (string.IsNullOrWhiteSpace(body?.NewFileName))
+                return BadRequest("newFileName is required.");
+
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized("User ID not found in token.");
+
+            var ctr = _cosmosClient.GetDatabase("docvault").GetContainer("documents");
+
+            // Read the existing document (partition key = userId)
+            DocumentMetadata doc;
+            try
+            {
+                var response = await ctr.ReadItemAsync<DocumentMetadata>(
+                    id, new PartitionKey(userId));
+                doc = response.Resource;
+            }
+            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return NotFound($"Document {id} not found.");
+            }
+
+            // Make sure this document belongs to the calling user
+            if (doc.UserId != userId)
+                return Forbid();
+
+            // Update just the display name — the underlying blob stays the same
+            doc.FileName = body.NewFileName.Trim();
+
+            await ctr.ReplaceItemAsync(doc, id, new PartitionKey(userId));
+
+            _logger.LogInformation(
+                "Document {Id} renamed to '{Name}' by user {UserId}",
+                id, doc.FileName, userId);
+
+            _telemetry.TrackEvent(
+                "DocumentRenamed",
+                new Dictionary<string, string>
+                {
+                    { "documentId", id },
+                    { "newFileName", doc.FileName },
+                    { "userId", userId }
+                });
+
+            return Ok(doc);
+        }
+        // ─────────────────────────────────────────────────────────────────────────
+
         [AllowAnonymous]
         [HttpGet("/api/health")]
         public IActionResult Health()
         {
-            return Ok(new
-            {
-                status = "healthy",
-                timestamp = DateTime.UtcNow
-            });
+            return Ok(new { status = "healthy", timestamp = DateTime.UtcNow });
         }
+    }
+
+    // Simple DTO for the rename request body
+    public class RenameRequest
+    {
+        public string NewFileName { get; set; } = string.Empty;
     }
 }
