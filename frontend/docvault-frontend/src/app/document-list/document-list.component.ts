@@ -7,7 +7,57 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { FormsModule } from '@angular/forms';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { DocumentService, DocumentMetadata } from '../services/document.service';
+
+type SortKey = 'name' | 'modified' | 'size' | 'type' | 'date-asc' | 'date-desc';
+type SortDir = 'asc' | 'desc';
+type Mode = 'grid' | 'list';
+type View = 'my-files' | 'starred' | 'recent' | 'trash';
+
+interface DocRow extends DocumentMetadata {
+  ext: string;
+  typeKey: string;
+  starred: boolean;
+  trashed: boolean;
+  trashedAt: Date | null;
+  selected: boolean;
+  _imgOk?: boolean;
+}
+
+const EXT_MAP: Record<string, { key: string; icon: string; color: string; bg: string }> = {
+  pdf:  { key: 'pdf', icon: 'picture_as_pdf', color: '#D93025', bg: '#FDE8E6' },
+  doc:  { key: 'doc', icon: 'description',    color: '#1A73E8', bg: '#E8F0FE' },
+  docx: { key: 'doc', icon: 'description',    color: '#1A73E8', bg: '#E8F0FE' },
+  txt:  { key: 'doc', icon: 'text_snippet',   color: '#5F6368', bg: '#F1F3F4' },
+  rtf:  { key: 'doc', icon: 'description',    color: '#1A73E8', bg: '#E8F0FE' },
+  xls:  { key: 'xls', icon: 'table_chart',    color: '#188038', bg: '#E6F4EA' },
+  xlsx: { key: 'xls', icon: 'table_chart',    color: '#188038', bg: '#E6F4EA' },
+  csv:  { key: 'xls', icon: 'table_chart',    color: '#188038', bg: '#E6F4EA' },
+  ppt:  { key: 'ppt', icon: 'slideshow',      color: '#D56E0C', bg: '#FEF7E0' },
+  pptx: { key: 'ppt', icon: 'slideshow',      color: '#D56E0C', bg: '#FEF7E0' },
+  png:  { key: 'img', icon: 'image',          color: '#188038', bg: '#E6F4EA' },
+  jpg:  { key: 'img', icon: 'image',          color: '#188038', bg: '#E6F4EA' },
+  jpeg: { key: 'img', icon: 'image',          color: '#188038', bg: '#E6F4EA' },
+  gif:  { key: 'img', icon: 'gif_box',        color: '#188038', bg: '#E6F4EA' },
+  webp: { key: 'img', icon: 'image',          color: '#188038', bg: '#E6F4EA' },
+  svg:  { key: 'img', icon: 'image',          color: '#188038', bg: '#E6F4EA' },
+  bmp:  { key: 'img', icon: 'image',          color: '#188038', bg: '#E6F4EA' },
+  mp4:  { key: 'vid', icon: 'video_file',     color: '#9334E6', bg: '#F3E8FD' },
+  mov:  { key: 'vid', icon: 'video_file',     color: '#9334E6', bg: '#F3E8FD' },
+  avi:  { key: 'vid', icon: 'video_file',     color: '#9334E6', bg: '#F3E8FD' },
+  mp3:  { key: 'aud', icon: 'audio_file',     color: '#E8710A', bg: '#FEF3E2' },
+  wav:  { key: 'aud', icon: 'audio_file',     color: '#E8710A', bg: '#FEF3E2' },
+  zip:  { key: 'zip', icon: 'folder_zip',     color: '#F29900', bg: '#FEF9E5' },
+  rar:  { key: 'zip', icon: 'folder_zip',     color: '#F29900', bg: '#FEF9E5' },
+  '7z': { key: 'zip', icon: 'folder_zip',     color: '#F29900', bg: '#FEF9E5' },
+};
+function getInfo(ext: string) {
+  return EXT_MAP[ext] ?? { key: 'other', icon: 'insert_drive_file', color: '#5F6368', bg: '#F1F3F4' };
+}
 
 @Component({
   selector: 'app-document-list',
@@ -41,6 +91,10 @@ import { DocumentService, DocumentMetadata } from '../services/document.service'
       <button mat-stroked-button (click)="load()" style="margin-left:16px; margin-bottom:16px">
         <mat-icon>refresh</mat-icon> Refresh
       </button>
+      <button class="chip" [class.on]="typeFilter==='zip'" (click)="setType('zip')">
+        <span class="dot" style="background:#F29900"></span>Archives
+      </button>
+    </div>
 
       <!-- Documents table -->
       <table mat-table [dataSource]="documents" style="width:100%">
@@ -177,6 +231,7 @@ export class DocumentListComponent implements OnInit, OnDestroy {
   }
 
   load() {
+    this.loading = true; this.cdr.markForCheck();
     this.svc.list().subscribe({
       next: (d) => (this.documents = d),
       error: (e) => console.error('Load failed', e),
@@ -189,8 +244,203 @@ export class DocumentListComponent implements OnInit, OnDestroy {
         next: (d) => (this.documents = d),
         error: (e) => console.error('Search failed', e),
       });
+    }, 150);
+  }
+
+  clearSearch() { this.query = ''; this.applyAll(); }
+
+  setType(t: string) { this.typeFilter = t; this.applyAll(); }
+
+  setSort(k: SortKey) {
+    if (this.sortKey === k) this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+    else { this.sortKey = k; this.sortDir = 'asc'; }
+    this.sortOpen = false; this.applyAll();
+  }
+
+  applyAll() {
+    let pool = [...this.rows];
+    if (this.view === 'starred')     pool = pool.filter(d => d.starred && !d.trashed);
+    else if (this.view === 'recent') pool = pool.filter(d => !d.trashed).slice(0, 20);
+    else if (this.view === 'trash')  pool = pool.filter(d => d.trashed);
+    else                             pool = pool.filter(d => !d.trashed);
+    if (this.query.trim()) {
+      const q = this.query.toLowerCase();
+      pool = pool.filter(d => d.fileName.toLowerCase().includes(q));
+    }
+    this.visible = this.applyFiltersAndSort(pool);
+    this.cdr.markForCheck();
+  }
+
+  clearDateFilter() { this.dateFrom = ''; this.dateTo = ''; this.applyAll(); }
+
+  applyFiltersAndSort(pool: DocRow[]): DocRow[] {
+    if (this.typeFilter !== 'all') pool = pool.filter(d => d.typeKey === this.typeFilter);
+    if (this.dateFrom) {
+      const from = new Date(this.dateFrom).getTime();
+      pool = pool.filter(d => new Date(d.uploadedAt).getTime() >= from);
+    }
+    if (this.dateTo) {
+      const to = new Date(this.dateTo);
+      to.setHours(23, 59, 59, 999);
+      pool = pool.filter(d => new Date(d.uploadedAt).getTime() <= to.getTime());
+    }
+    return pool.sort((a, b) => {
+      let va: string | number, vb: string | number;
+      switch (this.sortKey) {
+        case 'name':      va = a.fileName.toLowerCase();          vb = b.fileName.toLowerCase(); break;
+        case 'modified':  va = new Date(a.uploadedAt).getTime();  vb = new Date(b.uploadedAt).getTime(); break;
+        case 'date-asc':  return new Date(a.uploadedAt).getTime() - new Date(b.uploadedAt).getTime();
+        case 'date-desc': return new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime();
+        case 'size':      va = a.sizeBytes; vb = b.sizeBytes; break;
+        case 'type':      va = a.ext; vb = b.ext; break;
+        default:          va = vb = 0;
+      }
+      return (va < vb ? -1 : va > vb ? 1 : 0) * (this.sortDir === 'asc' ? 1 : -1);
+    });
+  }
+
+  // ── PERSISTENCE ────────────────────────────────────────────────────────────
+  private readonly STORAGE_KEY = 'docvault_file_state';
+
+  private loadPersistedState(): Record<string, { starred: boolean; trashed: boolean; trashedAt: string | null }> {
+    try { return JSON.parse(localStorage.getItem(this.STORAGE_KEY) ?? '{}'); } catch { return {}; }
+  }
+
+  private savePersistedState() {
+    const state: Record<string, { starred: boolean; trashed: boolean; trashedAt: string | null }> = {};
+    // Save ALL files explicitly — unstar/untrash saved as false so it's never lost on refresh
+    for (const r of this.rows) {
+      state[r.fileName] = {
+        starred:   r.starred,
+        trashed:   r.trashed,
+        trashedAt: r.trashedAt ? r.trashedAt.toISOString() : null,
+      };
+    }
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
+  }
+
+  // ── SELECTION ──────────────────────────────────────────────────────────────
+  toggleSelect(d: DocRow) { d.selected = !d.selected; this.cdr.markForCheck(); }
+  clearSelection() { this.rows.forEach(r => r.selected = false); this.applyAll(); }
+  toggleAll() { const all = this.allSelected; this.visible.forEach(d => d.selected = !all); this.cdr.markForCheck(); }
+
+  onCardClick(d: DocRow, e: MouseEvent) {
+    if (e.ctrlKey || e.metaKey) {
+      this.toggleSelect(d);
+    } else if (e.shiftKey && this.selectedCount > 0) {
+      const idxA = this.visible.findIndex(r => r.selected);
+      const idxB = this.visible.indexOf(d);
+      const lo = Math.min(idxA, idxB), hi = Math.max(idxA, idxB);
+      this.visible.forEach((r, i) => { if (i >= lo && i <= hi) r.selected = true; });
+      this.cdr.markForCheck();
     } else {
-      this.load();
+      this.clearSelection(); this.toggleSelect(d);
+    }
+  }
+  onRowClick = this.onCardClick.bind(this);
+
+  // ── BULK ACTIONS ───────────────────────────────────────────────────────────
+  bulkStar() {
+    this.visible.filter(d => d.selected).forEach(d => d.starred = true);
+    this.savePersistedState();
+    this.clearSelection();
+    this.showToast('Added to Starred ⭐', 'star');
+  }
+  bulkTrash() {
+    this.visible.filter(d => d.selected).forEach(d => { d.trashed = true; d.trashedAt = new Date(); });
+    this.savePersistedState();
+    this.clearSelection(); this.applyAll();
+    this.showToast('Moved to Trash 🗑️', 'delete');
+  }
+
+  // ── STAR ───────────────────────────────────────────────────────────────────
+  toggleStar(d: DocRow) {
+    d.starred = !d.starred;
+    this.savePersistedState();
+    this.applyAll();
+    this.showToast(d.starred ? 'Added to Starred ⭐' : 'Removed from Starred', 'star');
+  }
+
+  // ── TRASH (local only — file stays in cloud) ───────────────────────────────
+  trashDoc(d: DocRow) {
+    d.trashed = true; d.trashedAt = new Date(); d.starred = false;
+    this.savePersistedState();
+    if (this.pvDoc === d) this.closePv();
+    this.applyAll();
+    this.showToast('Moved to Trash 🗑️', 'delete');
+  }
+  restoreDoc(d: DocRow) {
+    d.trashed = false; d.trashedAt = null;
+    this.savePersistedState();
+    this.applyAll();
+    this.showToast('Restored ✅', 'restore');
+  }
+  restoreAll() {
+    this.visible.forEach(d => { d.trashed = false; d.trashedAt = null; });
+    this.savePersistedState();
+    this.applyAll();
+    this.showToast('All restored ✅', 'restore');
+  }
+
+  // ── PERMANENT DELETE (calls cloud API) ─────────────────────────────────────
+  async emptyTrash() {
+    const trashed = this.rows.filter(r => r.trashed);
+    if (trashed.length === 0) return;
+    this.showToast(`Deleting ${trashed.length} file(s)…`, 'hourglass_empty');
+    let completed = 0; let failed = 0;
+    for (const d of trashed) {
+      try {
+        await this.svc.delete(d.id).toPromise();
+        this.rows = this.rows.filter(r => r !== d);
+        this.savePersistedState();
+        completed++;
+        await new Promise(resolve => setTimeout(resolve, 300));
+      } catch {
+        failed++;
+      }
+    }
+    this.applyAll();
+    this.showToast(
+      failed > 0 ? `Deleted ${completed}, ${failed} failed` : 'Trash emptied 🗑️',
+      'delete_forever'
+    );
+    this.cdr.markForCheck();
+  }
+
+  permanentDelete(d: DocRow) { this.delDoc = d; }
+
+  confirmDelete() {
+    if (!this.delDoc) return;
+    const target = this.delDoc;
+    this.delDoc = null;
+    this.showToast('Deleting…', 'hourglass_empty');
+    this.svc.delete(target.id).subscribe({
+      next: () => {
+        this.rows = this.rows.filter(r => r !== target);
+        this.savePersistedState();
+        this.applyAll();
+        this.showToast('Deleted permanently 🗑️', 'delete_forever');
+      },
+      error: () => {
+        this.showToast('Delete failed — please try again', 'error');
+      }
+    });
+  }
+
+  // ── RENAME ─────────────────────────────────────────────────────────────────
+  openRename(d: DocRow) { this.renameDoc = d; this.renameName = d.fileName; }
+  confirmRename() {
+    if (!this.renameDoc || !this.renameName.trim()) return;
+    this.renameDoc.fileName = this.renameName.trim();
+    this.renameDoc.ext = this.getExt(this.renameDoc.fileName);
+    this.renameDoc.typeKey = getInfo(this.renameDoc.ext).key;
+    this.renameDoc = null; this.applyAll();
+    this.showToast('Renamed ✏️', 'drive_file_rename_outline');
+  }
+
+  copyLink(d: DocRow) {
+    if (d.downloadUrl && navigator.clipboard) {
+      navigator.clipboard.writeText(d.downloadUrl).then(() => this.showToast('Link copied! 🔗', 'link'));
     }
   }
 

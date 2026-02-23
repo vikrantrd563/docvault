@@ -45,6 +45,7 @@ namespace DocVault.Api.Controllers
                 ?? User.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier")?.Value;
         }
 
+        // ── UPLOAD ────────────────────────────────────────────────────────────
         [HttpPost]
         public async Task<IActionResult> Upload(IFormFile file)
         {
@@ -121,15 +122,16 @@ namespace DocVault.Api.Controllers
                 "DocumentUploaded",
                 new Dictionary<string, string>
                 {
-                    { "fileName", doc.FileName },
+                    { "fileName",    doc.FileName },
                     { "contentType", doc.ContentType },
-                    { "sizeBytes", doc.SizeBytes.ToString() },
-                    { "userId", doc.UserId }
+                    { "sizeBytes",   doc.SizeBytes.ToString() },
+                    { "userId",      doc.UserId }
                 });
 
             return Ok(doc);
         }
 
+        // ── LIST ──────────────────────────────────────────────────────────────
         [HttpGet]
         public async Task<IActionResult> List()
         {
@@ -164,6 +166,7 @@ namespace DocVault.Api.Controllers
             return Ok(docs);
         }
 
+        // ── SEARCH ────────────────────────────────────────────────────────────
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery(Name = "q")] string q)
         {
