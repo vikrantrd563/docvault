@@ -5,7 +5,7 @@ export const environment = {
     auth: {
       clientId: 'cdeae5d3-39ef-4f39-adb4-0dcfcf038a0f',
       authority: 'https://login.microsoftonline.com/aba96f5c-fedf-45cc-8df8-8a5c26557f1f',
-      redirectUri: 'redirectUri: window.location.origin'
+      redirectUri: 'https://delightful-desert-045289200.2.azurestaticapps.net'
     }
   },
   apiScopes: ['api://cdeae5d3-39ef-4f39-adb4-0dcfcf038a0f/Documents.Read']
